@@ -1,0 +1,10 @@
+{
+  "mcp_servers": {
+    "context7": {
+      "url": "https://mcp.context7.com",
+      "headers": {
+        "Authorization": "Bearer ctx7sk-9580922f-f804-451e-9007-b2505af40597"
+      }
+    }
+  }
+}

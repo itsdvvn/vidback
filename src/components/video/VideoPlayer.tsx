@@ -15,8 +15,8 @@ export interface VideoPlayerProps {
 
 export function VideoPlayer({ src, className, showCommentButton = false }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const { isCommenting } = useVideoPlayerState();
-  const { setDuration, setCurrentTime, setIsPlaying } = useVideoPlayerActions();
+  const { isCommenting, frozenTimestamp } = useVideoPlayerState();
+  const { setDuration, setCurrentTime, setIsPlaying, registerVideoRef } = useVideoPlayerActions();
   const [status, setStatus] = useState<"loading" | "error" | "ready">("loading");
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [aspectClass, setAspectClass] = useState<string>("aspect-video");
@@ -39,6 +39,7 @@ export function VideoPlayer({ src, className, showCommentButton = false }: Video
       setDuration(el.duration);
       setStatus("ready");
       detectAspectRatio(el);
+      registerVideoRef(el);
     };
 
     const onTimeUpdate = () => {
@@ -91,7 +92,7 @@ export function VideoPlayer({ src, className, showCommentButton = false }: Video
       el.removeEventListener("ended", onEnded);
       el.removeEventListener("error", onError);
     };
-  }, [setDuration, setCurrentTime, setIsPlaying, detectAspectRatio]);
+  }, [setDuration, setCurrentTime, setIsPlaying, detectAspectRatio, registerVideoRef]);
 
   return (
     <div className={cn("relative w-full", className)}>
@@ -131,7 +132,7 @@ export function VideoPlayer({ src, className, showCommentButton = false }: Video
       {isCommenting && (
         <div className="absolute top-3 left-1/2 z-10 -translate-x-1/2 rounded-full bg-indigo-600 px-4 py-1.5 text-sm font-medium text-white shadow-lg">
           Add Comment — Time:{" "}
-          {useVideoPlayerState().frozenTimestamp?.toFixed(1)}s
+          {frozenTimestamp?.toFixed(1)}s
         </div>
       )}
 

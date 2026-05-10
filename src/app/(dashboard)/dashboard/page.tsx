@@ -11,7 +11,7 @@ const MOCK_PROJECTS: (Project & { commentCount: number; unresolvedCount: number 
   {
     id: "1",
     name: "Client Edit v3 — Final Cut",
-    videoUrl: "https://drive.google.com/uc?export=download&id=1T8W0ytVrMe3DpXGtDb7Yii0XalX0wAFa",
+    videoUrl: "https://www.w3schools.com/html/mov_bbb.mp4",
     shareToken: "sh72-91sa-k182",
     editorId: "editor-1",
     createdAt: new Date("2025-05-08"),
@@ -21,7 +21,7 @@ const MOCK_PROJECTS: (Project & { commentCount: number; unresolvedCount: number 
   {
     id: "2",
     name: "Wedding Highlight Reel",
-    videoUrl: "https://drive.google.com/uc?export=download&id=1T8W0ytVrMe3DpXGtDb7Yii0XalX0wAFa",
+    videoUrl: "https://www.w3schools.com/html/mov_bbb.mp4",
     shareToken: "wq91-00xz-p556",
     editorId: "editor-1",
     createdAt: new Date("2025-05-05"),
@@ -31,7 +31,7 @@ const MOCK_PROJECTS: (Project & { commentCount: number; unresolvedCount: number 
   {
     id: "3",
     name: "Product Launch Trailer",
-    videoUrl: "https://drive.google.com/uc?export=download&id=1T8W0ytVrMe3DpXGtDb7Yii0XalX0wAFa",
+    videoUrl: "https://www.w3schools.com/html/mov_bbb.mp4",
     shareToken: "az33-bb72-q109",
     editorId: "editor-1",
     createdAt: new Date("2025-05-01"),

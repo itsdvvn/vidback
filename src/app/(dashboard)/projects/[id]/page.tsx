@@ -1,97 +1,51 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import type { Comment } from "@/types";
 import { VideoPlayerProvider } from "@/components/video/VideoPlayerProvider";
 import { VideoPlayer } from "@/components/video/VideoPlayer";
 import { CommentList } from "@/components/comments/CommentList";
-import { CommentInput } from "@/components/comments/CommentInput";
+import { CommentThread } from "@/components/comments/CommentThread";
 import { ShareLinkCopy } from "@/components/dashboard/ShareLinkCopy";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { ArrowLeft } from "lucide-react";
+import { commentStore } from "@/lib/store";
+
+const PROJECT_STATUSES = ["Under Review", "In Progress", "Approved", "Needs Revision"] as const;
+type ProjectStatus = (typeof PROJECT_STATUSES)[number];
 
 const MOCK_PROJECT = {
   id: "1",
   name: "Client Edit v3 — Final Cut",
-  videoUrl:
-    "https://drive.google.com/uc?export=download&id=1T8W0ytVrMe3DpXGtDb7Yii0XalX0wAFa",
+  videoUrl: "https://www.w3schools.com/html/mov_bbb.mp4",
   shareToken: "sh72-91sa-k182",
   editorId: "editor-1",
 };
 
-const MOCK_COMMENTS: Comment[] = [
-  {
-    id: 1, projectId: "1", authorName: "Sarah (Client)",
-    content: "Can we speed up this transition? It feels a little slow.",
-    timestamp: 5.2, isResolved: null, parentId: null,
-    createdAt: new Date("2025-05-09"),
-    replies: [
-      { id: 4, projectId: "1", authorName: "Editor Mike", content: "Good catch — I'll tighten that up to 0.5s.", timestamp: 5.2, isResolved: null, parentId: 1, createdAt: new Date("2025-05-10") },
-    ],
-  },
-  {
-    id: 2, projectId: "1", authorName: "Sarah (Client)",
-    content: "The background music is too loud here.",
-    timestamp: 15.8, isResolved: new Date("2025-05-10"), parentId: null,
-    createdAt: new Date("2025-05-09"), replies: [],
-  },
-  {
-    id: 3, projectId: "1", authorName: "Sarah (Client)",
-    content: "Love this shot! Keep it exactly as is.",
-    timestamp: 22.0, isResolved: null, parentId: null,
-    createdAt: new Date("2025-05-09"), replies: [],
-  },
-];
-
 export default function ProjectDetailPage() {
   const params = useParams();
-  const projectId = params?.id as string;
 
-  const [comments, setComments] = useState<Comment[]>(MOCK_COMMENTS);
-  const status = comments.length === 0 ? "empty" : "success";
+  const [comments, setComments] = useState<Comment[]>(() => commentStore.getAll());
+  const [status, setStatus] = useState<ProjectStatus>("Under Review");
+  const [showStatusMenu, setShowStatusMenu] = useState(false);
+
+  // Subscribe to the shared store — any change from client or editor re-renders both
+  useEffect(() => {
+    const unsub = commentStore.subscribe(() => {
+      setComments([...commentStore.getAll()]);
+    });
+    return unsub;
+  }, []);
+
   const unresolvedCount = comments.filter(
     (c) => c.isResolved === null && c.parentId === null,
   ).length;
-
-  const handleAddComment = useCallback(
-    (data: { authorName: string; content: string; timestamp: number; parentId?: number }) => {
-      const optimistic: Comment = {
-        id: Date.now(), projectId, authorName: data.authorName,
-        content: data.content, timestamp: data.timestamp,
-        isResolved: null, parentId: data.parentId ?? null,
-        createdAt: new Date(), replies: [],
-      };
-      setComments((prev) => {
-        if (data.parentId) {
-          return prev.map((c) =>
-            c.id === data.parentId
-              ? { ...c, replies: [...(c.replies ?? []), optimistic] }
-              : c,
-          );
-        }
-        return [...prev, optimistic];
-      });
-    },
-    [projectId],
-  );
+  const commentStatus = comments.length === 0 ? "empty" : "success";
 
   const handleResolve = useCallback((commentId: number, resolved: boolean) => {
-    setComments((prev) =>
-      prev.map((c) => {
-        if (c.id === commentId) return { ...c, isResolved: resolved ? new Date() : null };
-        if (c.replies) {
-          return {
-            ...c,
-            replies: c.replies.map((r) =>
-              r.id === commentId ? { ...r, isResolved: resolved ? new Date() : null } : r,
-            ),
-          };
-        }
-        return c;
-      }),
-    );
+    commentStore.resolve(commentId, resolved);
   }, []);
 
   return (
@@ -104,7 +58,41 @@ export default function ProjectDetailPage() {
           </Link>
           <div>
             <h1 className="text-xl font-bold text-zinc-900 dark:text-white">{MOCK_PROJECT.name}</h1>
-            <p className="text-sm text-zinc-500">{unresolvedCount} unresolved, {comments.length} total</p>
+            <div className="flex items-center gap-2 mt-1">
+              {/* Status dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowStatusMenu(!showStatusMenu)}
+                  className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:hover:bg-amber-900/50 transition-colors cursor-pointer"
+                >
+                  {status}
+                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {showStatusMenu && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setShowStatusMenu(false)} />
+                    <div className="absolute top-full left-0 mt-1 z-20 w-40 rounded-lg border border-zinc-200 bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-800">
+                      {PROJECT_STATUSES.map((s) => (
+                        <button
+                          key={s}
+                          onClick={() => { setStatus(s); setShowStatusMenu(false); }}
+                          className={`block w-full px-3 py-1.5 text-left text-sm transition-colors ${
+                            s === status
+                              ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400"
+                              : "text-zinc-700 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-700"
+                          }`}
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+              <p className="text-sm text-zinc-500">{unresolvedCount} unresolved, {comments.length} total</p>
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -113,30 +101,30 @@ export default function ProjectDetailPage() {
         </div>
       </div>
 
-      {/* Single column: Video → Controls → Comment Input → Comment List */}
-      <div className="space-y-4">
-        <VideoPlayerProvider>
+      {/* Video + Comment panel */}
+      <VideoPlayerProvider>
+        <div className="space-y-6">
           <VideoPlayer src={MOCK_PROJECT.videoUrl} showCommentButton={false} />
 
-          {/* Comment Input — directly below player controls */}
-          <div className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-            <h2 className="mb-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100">Add a Reply</h2>
-            <CommentInput onSubmit={handleAddComment} forceVisible />
-          </div>
-
-          {/* Comment History */}
+          {/* Comment history — synchronized via shared store */}
           <div className="rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
             <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
-              <h2 className="font-semibold text-sm text-zinc-900 dark:text-zinc-100">Comment History ({comments.length})</h2>
+              <h2 className="font-semibold text-sm text-zinc-900 dark:text-zinc-100">
+                Client Feedback ({comments.length})
+              </h2>
+              <span className="text-xs text-zinc-400">
+                Synced — all changes appear for the client
+              </span>
             </div>
             <CommentList
-              comments={comments} status={status as "loading" | "empty" | "error" | "success"}
-              onReply={(parentId, data) => handleAddComment({ ...data, parentId })}
-              onResolve={handleResolve} isEditor
+              comments={comments}
+              status={commentStatus}
+              onResolve={handleResolve}
+              isEditor
             />
           </div>
-        </VideoPlayerProvider>
-      </div>
+        </div>
+      </VideoPlayerProvider>
     </div>
   );
 }

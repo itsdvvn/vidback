@@ -15,7 +15,6 @@ interface VideoPlayerState {
   duration: number;
   isPlaying: boolean;
   comments: Comment[];
-  /** Whether the Add Comment mode is active (timestamp frozen) */
   isCommenting: boolean;
   frozenTimestamp: number | null;
 }
@@ -27,20 +26,22 @@ interface VideoPlayerActions {
   seek: (time: number) => void;
   rewind10: () => void;
   forward10: () => void;
-  /** Enter comment mode — pauses video & captures timestamp */
   startComment: () => void;
   cancelComment: () => void;
   setComments: (comments: Comment[]) => void;
   setDuration: (duration: number) => void;
   setCurrentTime: (time: number) => void;
   setIsPlaying: (playing: boolean) => void;
+  /** Called by VideoPlayer to connect the real <video> element */
+  registerVideoRef: (el: HTMLVideoElement | null) => void;
 }
 
 const StateContext = createContext<VideoPlayerState | null>(null);
 const ActionsContext = createContext<VideoPlayerActions | null>(null);
 
 export function VideoPlayerProvider({ children }: { children: ReactNode }) {
-  const videoRef = useRef<HTMLVideoElement | null>(null);
+  // Store the actual video element in a ref
+  const videoElRef = useRef<HTMLVideoElement | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -48,89 +49,90 @@ export function VideoPlayerProvider({ children }: { children: ReactNode }) {
   const [isCommenting, setIsCommenting] = useState(false);
   const [frozenTimestamp, setFrozenTimestamp] = useState<number | null>(null);
 
-  const play = useCallback(() => {
-    videoRef.current?.play();
+  // Called by VideoPlayer on mount to connect the real element
+  const registerVideoRef = useCallback((el: HTMLVideoElement | null) => {
+    videoElRef.current = el;
   }, []);
+
+  const getVideo = useCallback(() => videoElRef.current, []);
+
+  const play = useCallback(() => {
+    getVideo()?.play();
+  }, [getVideo]);
 
   const pause = useCallback(() => {
-    videoRef.current?.pause();
-  }, []);
+    getVideo()?.pause();
+  }, [getVideo]);
 
   const togglePlay = useCallback(() => {
-    if (!videoRef.current) return;
-    if (videoRef.current.paused) {
-      videoRef.current.play();
+    const el = getVideo();
+    if (!el) return;
+    if (el.paused) {
+      el.play();
     } else {
-      videoRef.current.pause();
+      el.pause();
     }
-  }, []);
+  }, [getVideo]);
 
   const seek = useCallback((time: number) => {
-    if (!videoRef.current) return;
-    videoRef.current.currentTime = Math.max(0, Math.min(time, videoRef.current.duration || 0));
-    setCurrentTime(videoRef.current.currentTime);
-  }, []);
+    const el = getVideo();
+    if (!el) return;
+    el.currentTime = Math.max(0, Math.min(time, el.duration || 0));
+    setCurrentTime(el.currentTime);
+  }, [getVideo]);
 
   const rewind10 = useCallback(() => {
-    if (!videoRef.current) return;
-    const newTime = Math.max(0, videoRef.current.currentTime - 10);
-    videoRef.current.currentTime = newTime;
-    setCurrentTime(newTime);
-  }, []);
+    const el = getVideo();
+    if (!el) return;
+    el.currentTime = Math.max(0, el.currentTime - 10);
+    setCurrentTime(el.currentTime);
+  }, [getVideo]);
 
   const forward10 = useCallback(() => {
-    if (!videoRef.current) return;
-    const newTime = Math.min(
-      videoRef.current.duration || 0,
-      videoRef.current.currentTime + 10,
-    );
-    videoRef.current.currentTime = newTime;
-    setCurrentTime(newTime);
-  }, []);
+    const el = getVideo();
+    if (!el) return;
+    el.currentTime = Math.min(el.duration || 0, el.currentTime + 10);
+    setCurrentTime(el.currentTime);
+  }, [getVideo]);
 
   const startComment = useCallback(() => {
-    if (!videoRef.current) return;
-    videoRef.current.pause();
+    const el = getVideo();
+    if (!el) return;
+    el.pause();
     setIsPlaying(false);
-    const timestamp = videoRef.current.currentTime;
-    setFrozenTimestamp(timestamp);
+    setFrozenTimestamp(el.currentTime);
     setIsCommenting(true);
-  }, []);
+  }, [getVideo]);
 
   const cancelComment = useCallback(() => {
     setIsCommenting(false);
     setFrozenTimestamp(null);
   }, []);
 
-  // Expose videoRef via a getter so children can attach it
-  const getVideoRef = useCallback(() => videoRef, []);
-
-  const state: VideoPlayerState & { _videoRef: typeof videoRef } = {
+  const state: VideoPlayerState = {
     currentTime,
     duration,
     isPlaying,
     comments,
     isCommenting,
     frozenTimestamp,
-    _videoRef: videoRef,
   };
 
-  const actions: VideoPlayerActions & { getVideoRef: () => typeof videoRef } =
-    {
-      play,
-      pause,
-      togglePlay,
-      seek,
-      rewind10,
-      forward10,
-      startComment,
-      cancelComment,
-      setComments,
-      setDuration,
-      setCurrentTime,
-      setIsPlaying,
-      getVideoRef,
-    };
+  const actions: VideoPlayerActions = {
+    play,
+    pause,
+    togglePlay,
+    seek,
+    rewind10,
+    forward10,
+    startComment,
+    cancelComment,
+    setComments,
+    setDuration,
+    setCurrentTime,
+    setIsPlaying,
+    registerVideoRef,
+  };
 
   return (
     <StateContext.Provider value={state}>
