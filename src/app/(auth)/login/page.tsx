@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
 import { useRouter } from "next/navigation";
+import { authClient } from "@/lib/auth-client";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -24,12 +25,22 @@ export default function LoginPage() {
 
     setLoading(true);
 
-    // Simulate auth for frontend demo — will be replaced with NextAuth later
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    try {
+      const result = await authClient.signIn.email({
+        email: email.trim(),
+        password: password.trim(),
+      });
 
-    // For now, always succeed and redirect
-    setLoading(false);
-    router.push("/dashboard");
+      if (result.error) {
+        setError(result.error.message || "Invalid credentials");
+      } else {
+        router.push("/dashboard");
+      }
+    } catch {
+      setError("Authentication failed. Is the server running?");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

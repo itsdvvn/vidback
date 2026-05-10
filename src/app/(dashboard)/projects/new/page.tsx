@@ -7,42 +7,41 @@ import { ShareLinkCopy } from "@/components/dashboard/ShareLinkCopy";
 import { Card } from "@/components/ui/Card";
 import { CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { createProject } from "@/lib/actions";
 
 export default function NewProjectPage() {
   const router = useRouter();
   const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [created, setCreated] = useState<{ name: string; shareToken: string } | null>(null);
+  const [error, setError] = useState<string>("");
+  const [created, setCreated] = useState<{
+    id: string;
+    name: string;
+    shareToken: string;
+  } | null>(null);
 
   const handleSubmit = async (data: ProjectFormData) => {
     setUploading(true);
-    setUploadProgress(0);
+    setError("");
 
-    // Simulate upload progress
-    const interval = setInterval(() => {
-      setUploadProgress((prev) => {
-        if (prev >= 90) {
-          clearInterval(interval);
-          return 90;
-        }
-        return prev + Math.random() * 15;
+    try {
+      const formData = new FormData();
+      formData.set("name", data.name);
+      formData.set("videoUrl", data.videoUrl);
+
+      const project = await createProject(formData);
+      setCreated({
+        id: project.id,
+        name: data.name,
+        shareToken: project.shareToken,
       });
-    }, 300);
-
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    clearInterval(interval);
-    setUploadProgress(100);
-
-    // Simulate success
-    const shareToken = generateShareToken();
-    setTimeout(() => {
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create project");
+    } finally {
       setUploading(false);
-      setCreated({ name: data.name, shareToken });
-    }, 500);
+    }
   };
 
-  // ─── Success state after creation ───
+  // ─── Success ───
   if (created) {
     return (
       <div className="mx-auto max-w-xl px-6 py-16">
@@ -66,9 +65,7 @@ export default function NewProjectPage() {
               Back to Dashboard
             </Button>
             <Button
-              onClick={() =>
-                router.push(`/projects/new`) // In real app: redirect to project detail
-              }
+              onClick={() => router.push(`/projects/${created.id}`)}
             >
               View Project
             </Button>
@@ -85,27 +82,14 @@ export default function NewProjectPage() {
           New Project
         </h1>
       </div>
-      <ProjectForm
-        onSubmit={handleSubmit}
-        uploading={uploading}
-        uploadProgress={uploadProgress}
-      />
+
+      {error && (
+        <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-400">
+          {error}
+        </div>
+      )}
+
+      <ProjectForm onSubmit={handleSubmit} uploading={uploading} />
     </div>
   );
-}
-
-/** Generate a random share token similar to "sh72-91sa-k182" */
-function generateShareToken(): string {
-  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-  const groups = 3;
-  const groupLength = 4;
-  const result: string[] = [];
-  for (let g = 0; g < groups; g++) {
-    let group = "";
-    for (let i = 0; i < groupLength; i++) {
-      group += chars[Math.floor(Math.random() * chars.length)];
-    }
-    result.push(group);
-  }
-  return result.join("-");
 }

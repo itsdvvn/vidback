@@ -7,46 +7,114 @@ import type { Comment } from "@/types";
 import { VideoPlayerProvider } from "@/components/video/VideoPlayerProvider";
 import { VideoPlayer } from "@/components/video/VideoPlayer";
 import { CommentList } from "@/components/comments/CommentList";
-import { CommentThread } from "@/components/comments/CommentThread";
 import { ShareLinkCopy } from "@/components/dashboard/ShareLinkCopy";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
-import { ArrowLeft } from "lucide-react";
-import { commentStore } from "@/lib/store";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { Button } from "@/components/ui/Button";
+import { ArrowLeft, AlertCircle, RefreshCw } from "lucide-react";
+import { getProjectWithCounts, getProjectComments, toggleResolve, replyToComment, updateProjectStatus } from "@/lib/actions";
 
 const PROJECT_STATUSES = ["Under Review", "In Progress", "Approved", "Needs Revision"] as const;
 type ProjectStatus = (typeof PROJECT_STATUSES)[number];
 
-const MOCK_PROJECT = {
-  id: "1",
-  name: "Client Edit v3 — Final Cut",
-  videoUrl: "https://www.w3schools.com/html/mov_bbb.mp4",
-  shareToken: "sh72-91sa-k182",
-  editorId: "editor-1",
-};
-
 export default function ProjectDetailPage() {
   const params = useParams();
+  const projectId = params?.id as string;
 
-  const [comments, setComments] = useState<Comment[]>(() => commentStore.getAll());
+  const [project, setProject] = useState<any>(null);
+  const [comments, setComments] = useState<Comment[]>([]);
   const [status, setStatus] = useState<ProjectStatus>("Under Review");
   const [showStatusMenu, setShowStatusMenu] = useState(false);
+  const [loadState, setLoadState] = useState<"loading" | "error" | "ready">("loading");
+  const [error, setError] = useState("");
 
-  // Subscribe to the shared store — any change from client or editor re-renders both
+  const fetchData = useCallback(async () => {
+    setLoadState("loading");
+    setError("");
+    try {
+      const [projectData, commentData] = await Promise.all([
+        getProjectWithCounts(projectId),
+        getProjectComments(projectId),
+      ]);
+      setProject(projectData);
+      setStatus((projectData as any).status || "Under Review");
+      setComments(commentData as Comment[]);
+      setLoadState("ready");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load project");
+      setLoadState("error");
+    }
+  }, [projectId]);
+
   useEffect(() => {
-    const unsub = commentStore.subscribe(() => {
-      setComments([...commentStore.getAll()]);
-    });
-    return unsub;
-  }, []);
+    fetchData();
+  }, [fetchData]);
 
   const unresolvedCount = comments.filter(
     (c) => c.isResolved === null && c.parentId === null,
   ).length;
   const commentStatus = comments.length === 0 ? "empty" : "success";
 
-  const handleResolve = useCallback((commentId: number, resolved: boolean) => {
-    commentStore.resolve(commentId, resolved);
+  const handleResolve = useCallback(async (commentId: number, resolved: boolean) => {
+    try {
+      await toggleResolve(commentId, resolved);
+      setComments((prev) =>
+        prev.map((c) => {
+          if (c.id === commentId) return { ...c, isResolved: resolved ? new Date() : null };
+          if (c.replies) {
+            return {
+              ...c,
+              replies: c.replies.map((r) =>
+                r.id === commentId
+                  ? { ...r, isResolved: resolved ? new Date() : null }
+                  : r,
+              ),
+            };
+          }
+          return c;
+        }),
+      );
+    } catch {
+      // ignore
+    }
   }, []);
+
+  const handleStatusChange = async (newStatus: string) => {
+    setStatus(newStatus as ProjectStatus);
+    setShowStatusMenu(false);
+    try {
+      await updateProjectStatus(projectId, newStatus);
+    } catch {
+      // revert on error would need original state; skip for now
+    }
+  };
+
+  // ─── Loading ───
+  if (loadState === "loading") {
+    return (
+      <div className="mx-auto max-w-5xl px-4 py-6">
+        <Skeleton className="h-8 w-64 mb-4" />
+        <Skeleton className="aspect-video w-full rounded-xl mb-4" />
+        <Skeleton className="h-40 w-full rounded-xl" />
+      </div>
+    );
+  }
+
+  // ─── Error ───
+  if (loadState === "error") {
+    return (
+      <div className="mx-auto max-w-5xl px-4 py-6">
+        <div className="flex flex-col items-center justify-center py-20">
+          <AlertCircle className="h-12 w-12 text-red-400 mb-4" />
+          <h2 className="text-lg font-semibold mb-2">Failed to load project</h2>
+          <p className="text-sm text-zinc-500 mb-4">{error}</p>
+          <Button onClick={fetchData}>
+            <RefreshCw className="h-4 w-4" /> Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6">
@@ -57,7 +125,9 @@ export default function ProjectDetailPage() {
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
-            <h1 className="text-xl font-bold text-zinc-900 dark:text-white">{MOCK_PROJECT.name}</h1>
+            <h1 className="text-xl font-bold text-zinc-900 dark:text-white">
+              {project?.name}
+            </h1>
             <div className="flex items-center gap-2 mt-1">
               {/* Status dropdown */}
               <div className="relative">
@@ -77,7 +147,7 @@ export default function ProjectDetailPage() {
                       {PROJECT_STATUSES.map((s) => (
                         <button
                           key={s}
-                          onClick={() => { setStatus(s); setShowStatusMenu(false); }}
+                          onClick={() => handleStatusChange(s)}
                           className={`block w-full px-3 py-1.5 text-left text-sm transition-colors ${
                             s === status
                               ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400"
@@ -91,12 +161,14 @@ export default function ProjectDetailPage() {
                   </>
                 )}
               </div>
-              <p className="text-sm text-zinc-500">{unresolvedCount} unresolved, {comments.length} total</p>
+              <p className="text-sm text-zinc-500">
+                {unresolvedCount} unresolved, {comments.length} total
+              </p>
             </div>
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <ShareLinkCopy shareToken={MOCK_PROJECT.shareToken} />
+          {project && <ShareLinkCopy shareToken={project.shareToken} />}
           <ThemeToggle />
         </div>
       </div>
@@ -104,9 +176,12 @@ export default function ProjectDetailPage() {
       {/* Video + Comment panel */}
       <VideoPlayerProvider>
         <div className="space-y-6">
-          <VideoPlayer src={MOCK_PROJECT.videoUrl} showCommentButton={false} />
+          <VideoPlayer
+            src={project?.videoUrl || "https://www.w3schools.com/html/mov_bbb.mp4"}
+            showCommentButton={false}
+          />
 
-          {/* Comment history — synchronized via shared store */}
+          {/* Comment history */}
           <div className="rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
             <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
               <h2 className="font-semibold text-sm text-zinc-900 dark:text-zinc-100">
