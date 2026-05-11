@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { projects, comments } from "@/db/schema";
+import { projects, comments, user } from "@/db/schema";
 import { eq, and, isNull, count } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -250,4 +250,26 @@ export async function createComment(formData: FormData) {
 
   revalidatePath(`/v/${project.shareToken}`);
   return comment;
+}
+
+// ─── Profile ───
+
+const updateProfileSchema = z.object({
+  name: z.string().min(1, "Name is required").max(100),
+});
+
+export async function updateProfile(formData: FormData) {
+  const session = await requireAuth();
+
+  const parsed = updateProfileSchema.parse({
+    name: formData.get("name"),
+  });
+
+  await db
+    .update(user)
+    .set({ name: parsed.name, updatedAt: new Date() })
+    .where(eq(user.id, session.user.id));
+
+  revalidatePath("/settings");
+  return { success: true, name: parsed.name };
 }

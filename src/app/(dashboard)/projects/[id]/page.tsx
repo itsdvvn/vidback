@@ -19,6 +19,7 @@ import {
   replyToComment,
   updateProjectStatus,
 } from "@/lib/actions";
+import { authClient } from "@/lib/auth-client";
 
 const PROJECT_STATUSES = [
   "Under Review",
@@ -40,6 +41,17 @@ export default function ProjectDetailPage() {
     "loading",
   );
   const [error, setError] = useState("");
+  const [editorName, setEditorName] = useState("");
+
+  // Fetch the editor's display name from the session
+  useEffect(() => {
+    authClient
+      .getSession()
+      .then(({ data }) => {
+        if (data?.user?.name) setEditorName(data.user.name);
+      })
+      .catch(() => {});
+  }, []);
 
   const fetchData = useCallback(async () => {
     setLoadState("loading");
@@ -273,6 +285,7 @@ export default function ProjectDetailPage() {
               onResolve={handleResolve}
               onReply={handleReply}
               isEditor
+              editorName={editorName}
             />
           </div>
         </div>

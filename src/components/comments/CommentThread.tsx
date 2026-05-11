@@ -10,9 +10,14 @@ import { cn } from "@/lib/utils";
 export interface CommentThreadProps {
   comment: Comment;
   onSeek?: (timestamp: number) => void;
-  onReply?: (parentId: number, data: { authorName: string; content: string; timestamp: number }) => void;
+  onReply?: (
+    parentId: number,
+    data: { authorName: string; content: string; timestamp: number },
+  ) => void;
   onResolve?: (commentId: number, resolved: boolean) => void;
   isEditor?: boolean;
+  /** Pre-fill the reply author name (from editor session) */
+  editorName?: string;
   className?: string;
 }
 
@@ -22,6 +27,7 @@ export function CommentThread({
   onReply,
   onResolve,
   isEditor = false,
+  editorName,
   className,
 }: CommentThreadProps) {
   const [showReplyInput, setShowReplyInput] = useState(false);
@@ -34,9 +40,7 @@ export function CommentThread({
           <CommentItem
             comment={comment}
             onSeek={onSeek}
-            onClickThread={() =>
-              setShowReplyInput((v) => !v)
-            }
+            onClickThread={() => setShowReplyInput((v) => !v)}
           />
         </div>
         {isEditor && onResolve && (
@@ -53,10 +57,7 @@ export function CommentThread({
           {comment.replies.map((reply) => (
             <div key={reply.id} className="flex items-start gap-2">
               <div className="flex-1 min-w-0">
-                <CommentItem
-                  comment={reply}
-                  onSeek={onSeek}
-                />
+                <CommentItem comment={reply} onSeek={onSeek} />
               </div>
               {isEditor && onResolve && (
                 <ResolveButton
@@ -81,6 +82,7 @@ export function CommentThread({
                 onReply(comment.id, data);
                 setShowReplyInput(false);
               }}
+              defaultName={editorName}
             />
           ) : (
             <button

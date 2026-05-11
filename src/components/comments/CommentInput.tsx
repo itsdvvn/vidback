@@ -3,7 +3,10 @@
 import { useState, useEffect, type FormEvent } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { useVideoPlayerState, useVideoPlayerActions } from "@/components/video/VideoPlayerProvider";
+import {
+  useVideoPlayerState,
+  useVideoPlayerActions,
+} from "@/components/video/VideoPlayerProvider";
 import { cn } from "@/lib/utils";
 import { MessageSquarePlus, X } from "lucide-react";
 
@@ -19,35 +22,47 @@ export interface CommentInputProps {
   parentId?: number;
   className?: string;
   forceVisible?: boolean;
+  /** Pre-fill the author name and hide the input field (used for editor replies) */
+  defaultName?: string;
 }
 
-export function CommentInput({ onSubmit, parentId, className, forceVisible = false }: CommentInputProps) {
+export function CommentInput({
+  onSubmit,
+  parentId,
+  className,
+  forceVisible = false,
+  defaultName,
+}: CommentInputProps) {
   const { frozenTimestamp, isCommenting } = useVideoPlayerState();
   const { cancelComment } = useVideoPlayerActions();
 
-  const [authorName, setAuthorName] = useState("");
+  const [authorName, setAuthorName] = useState(defaultName || "");
   const [content, setContent] = useState("");
   const [nameError, setNameError] = useState("");
   const [contentError, setContentError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  // Load saved name from localStorage on mount
+  // Load saved name from localStorage on mount (only for client-side top-level comments)
   useEffect(() => {
+    if (defaultName) return; // editor replies use the provided name
     try {
       const saved = localStorage.getItem(NAME_STORAGE_KEY);
       if (saved) setAuthorName(saved);
     } catch {
       // localStorage unavailable (SSR, private browsing, etc.)
     }
-  }, []);
+  }, [defaultName]);
 
-  const timestamp = parentId ? frozenTimestamp ?? 0 : frozenTimestamp ?? 0;
+  const timestamp = parentId ? (frozenTimestamp ?? 0) : (frozenTimestamp ?? 0);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
+    // Use defaultName when provided (editor replies), otherwise use the input field
+    const effectiveName = defaultName || authorName.trim();
+
     let valid = true;
-    if (!authorName.trim()) {
+    if (!effectiveName) {
       setNameError("Your name is required.");
       valid = false;
     } else {
@@ -63,16 +78,17 @@ export function CommentInput({ onSubmit, parentId, className, forceVisible = fal
 
     setSubmitting(true);
     try {
-      // Persist the name so the client doesn't have to re-type it
-      const name = authorName.trim();
-      try {
-        localStorage.setItem(NAME_STORAGE_KEY, name);
-      } catch {
-        // ignore
+      // Persist the name (only for client-side comments)
+      if (!defaultName && effectiveName) {
+        try {
+          localStorage.setItem(NAME_STORAGE_KEY, effectiveName);
+        } catch {
+          // ignore
+        }
       }
 
       await onSubmit({
-        authorName: name,
+        authorName: effectiveName,
         content: content.trim(),
         timestamp,
         parentId,
@@ -117,22 +133,31 @@ export function CommentInput({ onSubmit, parentId, className, forceVisible = fal
       )}
 
       <div className="flex flex-col gap-3">
-        <Input
-          id="authorName"
-          placeholder="Your name"
-          value={authorName}
-          onChange={(e) => {
-            setAuthorName(e.target.value);
-            if (nameError) setNameError("");
-          }}
-          error={nameError}
-          autoFocus
-        />
+        {/* Name field — hidden for editor replies (defaultName is set) */}
+        {!defaultName && (
+          <Input
+            id="authorName"
+            placeholder="Your name"
+            value={authorName}
+            onChange={(e) => {
+              setAuthorName(e.target.value);
+              if (nameError) setNameError("");
+            }}
+            error={nameError}
+            autoFocus={!parentId}
+          />
+        )}
+        {defaultName && parentId && (
+          <p className="text-xs text-zinc-500">
+            Replying as{" "}
+            <span className="font-medium text-zinc-700 dark:text-zinc-300">
+              {defaultName}
+            </span>
+          </p>
+        )}
         <div className="flex flex-col gap-1">
           <textarea
-            placeholder={
-              parentId ? "Write a reply…" : "What needs to change?"
-            }
+            placeholder={parentId ? "Write a reply…" : "What needs to change?"}
             value={content}
             onChange={(e) => {
               setContent(e.target.value);
@@ -148,7 +173,9 @@ export function CommentInput({ onSubmit, parentId, className, forceVisible = fal
                 : "border-zinc-200 focus:ring-indigo-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100",
             )}
           />
-          {contentError && <p className="text-sm text-red-600">{contentError}</p>}
+          {contentError && (
+            <p className="text-sm text-red-600">{contentError}</p>
+          )}
         </div>
         <div className="flex items-center justify-end gap-2">
           {!parentId && (

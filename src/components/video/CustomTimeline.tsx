@@ -1,6 +1,9 @@
 "use client";
 
-import { useVideoPlayerState, useVideoPlayerActions } from "./VideoPlayerProvider";
+import {
+  useVideoPlayerState,
+  useVideoPlayerActions,
+} from "./VideoPlayerProvider";
 import { cn } from "@/lib/utils";
 import type { MouseEvent, TouchEvent } from "react";
 
@@ -17,10 +20,11 @@ export function CustomTimeline() {
   };
 
   const onMouseDown = (e: MouseEvent<HTMLDivElement>) => {
-    handleSeek(e.clientX, e.currentTarget);
+    const container = e.currentTarget;
+    handleSeek(e.clientX, container);
 
     const onMove = (moveEvent: globalThis.MouseEvent) => {
-      handleSeek(moveEvent.clientX, e.currentTarget);
+      handleSeek(moveEvent.clientX, container);
     };
     const onUp = () => {
       window.removeEventListener("mousemove", onMove);
@@ -31,7 +35,8 @@ export function CustomTimeline() {
   };
 
   const onTouchStart = (e: TouchEvent<HTMLDivElement>) => {
-    handleSeek(e.touches[0].clientX, e.currentTarget);
+    const container = e.currentTarget;
+    handleSeek(e.touches[0].clientX, container);
   };
 
   return (
@@ -56,9 +61,7 @@ export function CustomTimeline() {
                 key={c.id}
                 className={cn(
                   "absolute top-1/2 -translate-y-1/2 h-3 w-3 rounded-full border-2 border-white cursor-pointer transition-transform hover:scale-150",
-                  c.isResolved
-                    ? "bg-emerald-500"
-                    : "bg-amber-500",
+                  c.isResolved ? "bg-emerald-500" : "bg-amber-500",
                 )}
                 style={{ left: `${position}%` }}
                 title={`${c.authorName}: ${c.content.slice(0, 50)}…`}

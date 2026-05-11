@@ -10,10 +10,15 @@ export interface CommentListProps {
   comments: Comment[];
   status: "loading" | "empty" | "error" | "success";
   onSeek?: (timestamp: number) => void;
-  onReply?: (parentId: number, data: { authorName: string; content: string; timestamp: number }) => void;
+  onReply?: (
+    parentId: number,
+    data: { authorName: string; content: string; timestamp: number },
+  ) => void;
   onResolve?: (commentId: number, resolved: boolean) => void;
   onRetry?: () => void;
   isEditor?: boolean;
+  /** Pre-fill the reply author name (from editor session) */
+  editorName?: string;
 }
 
 export function CommentList({
@@ -24,6 +29,7 @@ export function CommentList({
   onResolve,
   onRetry,
   isEditor = false,
+  editorName,
 }: CommentListProps) {
   // ─── Loading ───
   if (status === "loading") {
@@ -74,7 +80,7 @@ export function CommentList({
           <p className="mt-1 text-sm text-zinc-500">
             {isEditor
               ? "Share this project with your client to start getting feedback."
-              : "Click \"Add Comment\" while watching the video to leave feedback."}
+              : 'Click "Add Comment" while watching the video to leave feedback.'}
           </p>
         </div>
       </div>
@@ -95,6 +101,7 @@ export function CommentList({
           onReply={onReply}
           onResolve={onResolve}
           isEditor={isEditor}
+          editorName={editorName}
         />
       ))}
     </div>
