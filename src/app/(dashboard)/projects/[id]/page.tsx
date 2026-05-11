@@ -19,20 +19,12 @@ import {
   replyToComment,
   updateProjectStatus,
   deleteProject,
+  updateProjectThumbnail,
 } from "@/lib/actions";
 import { authClient } from "@/lib/auth-client";
-import { captureVideoFrame } from "@/lib/thumbnail";
-import { updateProjectThumbnail } from "@/lib/actions";
 import { useVideoPlayerActions } from "@/components/video/VideoPlayerProvider";
 import { ToastProvider, toast } from "@/components/ui/Toast";
-
-const PROJECT_STATUSES = [
-  "Under Review",
-  "In Progress",
-  "Approved",
-  "Needs Revision",
-] as const;
-type ProjectStatus = (typeof PROJECT_STATUSES)[number];
+import { StatusSelector } from "@/components/dashboard/StatusSelector";
 
 export default function ProjectDetailPage() {
   const params = useParams();
@@ -40,8 +32,7 @@ export default function ProjectDetailPage() {
 
   const [project, setProject] = useState<any>(null);
   const [comments, setComments] = useState<Comment[]>([]);
-  const [status, setStatus] = useState<ProjectStatus>("Under Review");
-  const [showStatusMenu, setShowStatusMenu] = useState(false);
+  const [status, setStatus] = useState<string>("Under Review");
   const [loadState, setLoadState] = useState<"loading" | "error" | "ready">(
     "loading",
   );
@@ -49,13 +40,10 @@ export default function ProjectDetailPage() {
   const router = useRouter();
 
   const [editorName, setEditorName] = useState("");
-
-  // Track previous comment count to detect new comments during polling
   const prevCommentCountRef = useRef(0);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  // Fetch the editor's display name from the session
   useEffect(() => {
     authClient
       .getSession()
@@ -89,26 +77,22 @@ export default function ProjectDetailPage() {
     fetchData();
   }, [fetchData]);
 
-  // ─── Polling for real-time comment updates ───
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   useEffect(() => {
     if (loadState !== "ready") return;
-
     pollingRef.current = setInterval(async () => {
       try {
         const commentData = await getProjectComments(projectId);
         const newComments = commentData as Comment[];
-        // Show info toast when new comments are detected
         if (newComments.length > prevCommentCountRef.current) {
           toast("New feedback arrived!");
         }
         prevCommentCountRef.current = newComments.length;
         setComments(newComments);
       } catch {
-        // silent — don't disrupt the editor
+        /* ignore */
       }
     }, 10_000);
-
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
     };
@@ -141,7 +125,7 @@ export default function ProjectDetailPage() {
           }),
         );
       } catch {
-        // ignore
+        /* ignore */
       }
     },
     [],
@@ -163,19 +147,18 @@ export default function ProjectDetailPage() {
         );
         toast("Reply submitted!", "success");
       } catch {
-        // ignore
+        /* ignore */
       }
     },
     [projectId],
   );
 
   const handleStatusChange = async (newStatus: string) => {
-    setStatus(newStatus as ProjectStatus);
-    setShowStatusMenu(false);
+    setStatus(newStatus);
     try {
       await updateProjectStatus(projectId, newStatus);
     } catch {
-      // ignore
+      /* ignore */
     }
   };
 
@@ -190,7 +173,6 @@ export default function ProjectDetailPage() {
     }
   }, [projectId, router]);
 
-  // ─── Loading ───
   if (loadState === "loading") {
     return (
       <div className="mx-auto max-w-5xl px-4 py-6">
@@ -201,7 +183,6 @@ export default function ProjectDetailPage() {
     );
   }
 
-  // ─── Error ───
   if (loadState === "error") {
     return (
       <div className="mx-auto max-w-5xl px-4 py-6">
@@ -220,7 +201,6 @@ export default function ProjectDetailPage() {
   return (
     <ToastProvider>
       <div className="mx-auto max-w-5xl px-4 py-6">
-        {/* Top bar */}
         <div className="mb-4 flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
             <Link
@@ -234,51 +214,10 @@ export default function ProjectDetailPage() {
                 {project?.name}
               </h1>
               <div className="flex items-center gap-2 mt-1">
-                {/* Status dropdown */}
-                <div className="relative">
-                  <button
-                    onClick={() => setShowStatusMenu(!showStatusMenu)}
-                    className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:hover:bg-amber-900/50 transition-colors cursor-pointer"
-                  >
-                    {status}
-                    <svg
-                      className="h-3 w-3"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M19 9l-7 7-7-7"
-                      />
-                    </svg>
-                  </button>
-                  {showStatusMenu && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-10"
-                        onClick={() => setShowStatusMenu(false)}
-                      />
-                      <div className="absolute top-full left-0 mt-1 z-20 w-40 rounded-lg border border-zinc-200 bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-800">
-                        {PROJECT_STATUSES.map((s) => (
-                          <button
-                            key={s}
-                            onClick={() => handleStatusChange(s)}
-                            className={`block w-full px-3 py-1.5 text-left text-sm transition-colors ${
-                              s === status
-                                ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400"
-                                : "text-zinc-700 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-700"
-                            }`}
-                          >
-                            {s}
-                          </button>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
+                <StatusSelector
+                  current={status as any}
+                  onChange={handleStatusChange}
+                />
                 <p className="text-sm text-zinc-500">
                   {unresolvedCount} unresolved, {comments.length} total
                 </p>
@@ -296,8 +235,6 @@ export default function ProjectDetailPage() {
             </button>
             <ThemeToggle />
           </div>
-
-          {/* Delete confirmation dialog */}
           {showDeleteConfirm && (
             <>
               <div
@@ -317,37 +254,15 @@ export default function ProjectDetailPage() {
                     <button
                       onClick={() => setShowDeleteConfirm(false)}
                       disabled={deleting}
-                      className="inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors disabled:pointer-events-none disabled:opacity-50"
+                      className="rounded-lg px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleDelete}
                       disabled={deleting}
-                      className="inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 transition-colors disabled:pointer-events-none disabled:opacity-50"
+                      className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 transition-colors disabled:opacity-50"
                     >
-                      {deleting && (
-                        <svg
-                          className="animate-spin h-4 w-4"
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                        >
-                          <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                          />
-                          <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                          />
-                        </svg>
-                      )}
                       {deleting ? "Deleting..." : "Delete"}
                     </button>
                   </div>
@@ -357,7 +272,6 @@ export default function ProjectDetailPage() {
           )}
         </div>
 
-        {/* Video + Comment panel */}
         <VideoPlayerProvider>
           <ProjectVideoSection
             project={project}
@@ -400,41 +314,30 @@ function ProjectVideoSection({
     [seek],
   );
 
-  // Auto-capture thumbnail when video is ready and no thumbnail exists yet
+  // Auto-capture thumbnail using server-side ffmpeg.wasm (reliable, no CORS issues)
   useEffect(() => {
     if (!project?.videoUrl || project.thumbnailUrl) return;
 
     let cancelled = false;
-    const capture = async () => {
+    const timer = setTimeout(async () => {
       try {
-        const blob = await captureVideoFrame(project.videoUrl, 2);
-        if (cancelled) return;
-
-        const reader = new FileReader();
-        const base64 = await new Promise<string>((resolve, reject) => {
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.onerror = () => reject(new Error("Failed to read blob"));
-          reader.readAsDataURL(blob);
-        });
-
-        const res = await fetch("/api/thumbnail/upload", {
+        const res = await fetch("/api/thumbnail/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            videoUrl: project.videoUrl,
             projectId: project.id,
-            imageBase64: base64,
+            timeSeconds: 2,
           }),
         });
-
-        if (!res.ok || cancelled) return;
+        if (cancelled || !res.ok) return;
         const { thumbnailUrl } = await res.json();
-        await updateProjectThumbnail(project.id, thumbnailUrl);
+        if (!cancelled) await updateProjectThumbnail(project.id, thumbnailUrl);
       } catch {
-        // Silent — thumbnail is nice-to-have, not critical
+        /* ignore */
       }
-    };
+    }, 2000);
 
-    const timer = setTimeout(capture, 2000);
     return () => {
       cancelled = true;
       clearTimeout(timer);
@@ -448,7 +351,6 @@ function ProjectVideoSection({
         showCommentButton={false}
         comments={comments}
       />
-
       <div className="rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
         <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
           <h2 className="font-semibold text-sm text-zinc-900 dark:text-zinc-100">

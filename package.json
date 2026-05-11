@@ -11,6 +11,9 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1045.0",
     "@aws-sdk/s3-request-presigner": "^3.1045.0",
+    "@ffmpeg/core": "^0.12.10",
+    "@ffmpeg/ffmpeg": "^0.12.15",
+    "@ffmpeg/util": "^0.12.2",
     "better-auth": "^1.6.10",
     "clsx": "^2.1.1",
     "drizzle-kit": "^0.31.10",

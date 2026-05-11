@@ -21,6 +21,10 @@ import { Film, AlertCircle, RefreshCw } from "lucide-react";
 import { createComment } from "@/lib/actions";
 import { useVideoPlayerActions } from "@/components/video/VideoPlayerProvider";
 import { ToastProvider, toast } from "@/components/ui/Toast";
+import {
+  ClientIdentityModal,
+  getCurrentClient,
+} from "@/components/comments/ClientIdentityModal";
 
 /** Poll for new comments every N ms */
 const POLL_INTERVAL = 10_000;
@@ -37,6 +41,8 @@ export default function ClientReviewPage({
     "loading",
   );
   const [error, setError] = useState("");
+  const [clientName, setClientName] = useState("");
+  const [showIdentityModal, setShowIdentityModal] = useState(false);
 
   // Track previous comment count to detect new comments during polling
   const prevCommentCountRef = useRef(0);
@@ -71,6 +77,22 @@ export default function ClientReviewPage({
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // ─── Client identity ───
+  useEffect(() => {
+    // Check if client is already identified this session
+    const existing = getCurrentClient();
+    if (existing) {
+      setClientName(existing);
+    } else {
+      setShowIdentityModal(true);
+    }
+  }, []);
+
+  const handleIdentityComplete = useCallback((name: string) => {
+    setClientName(name);
+    setShowIdentityModal(false);
+  }, []);
 
   // ─── Polling for cross-tab / multi-device sync ───
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -202,6 +224,7 @@ export default function ClientReviewPage({
             comments={optimisticComments}
             status={status as "loading" | "empty" | "error" | "success"}
             onAddComment={handleAddComment}
+            clientName={clientName}
           />
 
           <footer className="flex items-center justify-center gap-6 py-4 text-xs text-zinc-400 dark:text-zinc-500 border-t border-zinc-200 dark:border-zinc-800">
@@ -238,6 +261,9 @@ export default function ClientReviewPage({
           </footer>
         </VideoPlayerProvider>
       </div>
+      {showIdentityModal && (
+        <ClientIdentityModal onComplete={handleIdentityComplete} />
+      )}
     </ToastProvider>
   );
 }
@@ -248,6 +274,7 @@ function ReviewVideoSection({
   comments,
   status,
   onAddComment,
+  clientName,
 }: {
   project: any;
   comments: Comment[];
@@ -257,6 +284,7 @@ function ReviewVideoSection({
     content: string;
     timestamp: number;
   }) => Promise<void>;
+  clientName: string;
 }) {
   const { seek } = useVideoPlayerActions();
   const handleSeekToComment = useCallback(
@@ -273,7 +301,10 @@ function ReviewVideoSection({
         showCommentButton
         comments={comments}
       />
-      <CommentInput onSubmit={onAddComment} />
+      <CommentInput
+        onSubmit={onAddComment}
+        defaultName={clientName || undefined}
+      />
 
       <div className="rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
         <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">

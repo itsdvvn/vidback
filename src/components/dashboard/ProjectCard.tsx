@@ -1,8 +1,16 @@
 import type { Project } from "@/types";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import type { BadgeVariant } from "@/components/ui/Badge";
 import { Film, MessageSquare, Calendar } from "lucide-react";
 import Link from "next/link";
+
+const statusVariantMap: Record<string, BadgeVariant> = {
+  "Under Review": "warning",
+  "In Progress": "info",
+  Approved: "success",
+  "Needs Revision": "danger",
+};
 
 export interface ProjectCardProps {
   project: Project;
@@ -36,6 +44,14 @@ export function ProjectCard({
           <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
             {project.name}
           </h3>
+
+          {project.status && (
+            <div className="mt-1">
+              <Badge variant={statusVariantMap[project.status] ?? "default"}>
+                {project.status}
+              </Badge>
+            </div>
+          )}
 
           <div className="flex items-center gap-3 text-xs text-zinc-500">
             <span className="flex items-center gap-1">

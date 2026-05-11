@@ -138,7 +138,7 @@ export function CommentInput({
       )}
 
       <div className="flex flex-col gap-3">
-        {/* Name field — hidden for editor replies (defaultName is set) */}
+        {/* Name field — hidden when defaultName is provided (client identity or editor replies) */}
         {!defaultName && (
           <NameDropdown
             value={authorName}
@@ -151,9 +151,9 @@ export function CommentInput({
             autoFocus={!parentId}
           />
         )}
-        {defaultName && parentId && (
+        {defaultName && (
           <p className="text-xs text-zinc-500">
-            Replying as{" "}
+            {parentId ? "Replying" : "Commenting"} as{" "}
             <span className="font-medium text-zinc-700 dark:text-zinc-300">
               {defaultName}
             </span>
