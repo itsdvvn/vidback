@@ -83,7 +83,7 @@ export default function Home() {
               </div>
 
               {/* Quick stats */}
-              <div className="mt-12 grid grid-cols-2 gap-4 sm:grid-cols-3">
+              <div className="mt-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
                 {[
                   { label: "Time-coded comments", icon: Clock },
                   { label: "No client sign-up", icon: Users },
