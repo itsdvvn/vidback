@@ -5,6 +5,7 @@ export interface Project {
   videoUrl: string;
   shareToken: string;
   editorId: string;
+  thumbnailUrl?: string | null;
   createdAt: Date;
 }
 

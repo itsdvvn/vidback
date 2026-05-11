@@ -18,9 +18,18 @@ export function ProjectCard({
   return (
     <Link href={`/projects/${project.id}`}>
       <Card className="group h-full cursor-pointer transition-all hover:shadow-lg hover:border-indigo-300 dark:hover:border-indigo-600">
-        {/* Thumbnail placeholder */}
-        <div className="mb-4 aspect-video rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center overflow-hidden">
-          <Film className="h-10 w-10 text-zinc-300 dark:text-zinc-600 group-hover:text-indigo-400 transition-colors" />
+        {/* Thumbnail */}
+        <div className="mb-4 aspect-video rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center overflow-hidden relative">
+          {project.thumbnailUrl ? (
+            <img
+              src={project.thumbnailUrl}
+              alt={project.name}
+              className="absolute inset-0 w-full h-full object-cover"
+              loading="lazy"
+            />
+          ) : (
+            <Film className="h-10 w-10 text-zinc-300 dark:text-zinc-600 group-hover:text-indigo-400 transition-colors" />
+          )}
         </div>
 
         <div className="space-y-2">

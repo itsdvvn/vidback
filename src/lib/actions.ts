@@ -2,7 +2,7 @@
 
 import { db } from "@/db";
 import { projects, comments, user } from "@/db/schema";
-import { eq, and, isNull, count } from "drizzle-orm";
+import { eq, and, isNull, count, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { nanoid } from "nanoid";
@@ -199,13 +199,20 @@ export async function replyToComment(
 ) {
   const session = await requireAuth();
 
+  // Inherit the parent comment's timestamp so the reply seeks to the right time
+  const [parent] = await db
+    .select({ timestamp: comments.timestamp })
+    .from(comments)
+    .where(eq(comments.id, commentId))
+    .limit(1);
+
   const [reply] = await db
     .insert(comments)
     .values({
       projectId,
       authorName: session.user.name,
       content,
-      timestamp: 0,
+      timestamp: parent?.timestamp ?? 0,
       parentId: commentId,
     })
     .returning();
@@ -299,4 +306,47 @@ export async function updateProfile(formData: FormData) {
 
   revalidatePath("/settings");
   return { success: true, name: parsed.name };
+}
+
+// ─── Notifications ───
+
+export type Notification = {
+  id: number;
+  projectId: string;
+  projectName: string;
+  authorName: string;
+  content: string;
+  timestamp: number;
+  isResolved: Date | null;
+  createdAt: Date;
+};
+
+export async function getEditorNotifications(): Promise<Notification[]> {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  if (!session?.user) {
+    throw new Error("Not authenticated");
+  }
+
+  const rows = await db
+    .select({
+      id: comments.id,
+      projectId: comments.projectId,
+      projectName: projects.name,
+      authorName: comments.authorName,
+      content: comments.content,
+      timestamp: comments.timestamp,
+      isResolved: comments.isResolved,
+      createdAt: comments.createdAt,
+    })
+    .from(comments)
+    .innerJoin(projects, eq(comments.projectId, projects.id))
+    .where(
+      and(eq(projects.editorId, session.user.id), isNull(comments.parentId)),
+    )
+    .orderBy(desc(comments.createdAt))
+    .limit(50);
+
+  return rows;
 }

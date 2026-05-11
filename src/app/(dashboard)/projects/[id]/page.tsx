@@ -21,6 +21,8 @@ import {
   deleteProject,
 } from "@/lib/actions";
 import { authClient } from "@/lib/auth-client";
+import { captureVideoFrame } from "@/lib/thumbnail";
+import { updateProjectThumbnail } from "@/lib/actions";
 import { useVideoPlayerActions } from "@/components/video/VideoPlayerProvider";
 import { ToastProvider, toast } from "@/components/ui/Toast";
 
@@ -398,6 +400,47 @@ function ProjectVideoSection({
     [seek],
   );
 
+  // Auto-capture thumbnail when video is ready and no thumbnail exists yet
+  useEffect(() => {
+    if (!project?.videoUrl || project.thumbnailUrl) return;
+
+    let cancelled = false;
+    const capture = async () => {
+      try {
+        const blob = await captureVideoFrame(project.videoUrl, 2);
+        if (cancelled) return;
+
+        const reader = new FileReader();
+        const base64 = await new Promise<string>((resolve, reject) => {
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = () => reject(new Error("Failed to read blob"));
+          reader.readAsDataURL(blob);
+        });
+
+        const res = await fetch("/api/thumbnail/upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            projectId: project.id,
+            imageBase64: base64,
+          }),
+        });
+
+        if (!res.ok || cancelled) return;
+        const { thumbnailUrl } = await res.json();
+        await updateProjectThumbnail(project.id, thumbnailUrl);
+      } catch {
+        // Silent — thumbnail is nice-to-have, not critical
+      }
+    };
+
+    const timer = setTimeout(capture, 2000);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [project?.videoUrl, project?.thumbnailUrl, project?.id]);
+
   return (
     <div className="space-y-6">
       <VideoPlayer
@@ -406,7 +449,6 @@ function ProjectVideoSection({
         comments={comments}
       />
 
-      {/* Comment history */}
       <div className="rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
         <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
           <h2 className="font-semibold text-sm text-zinc-900 dark:text-zinc-100">
