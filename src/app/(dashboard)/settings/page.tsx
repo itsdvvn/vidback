@@ -72,10 +72,8 @@ export default function SettingsPage() {
   return (
     <div className="mx-auto max-w-xl px-6 py-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">
-          Profile Settings
-        </h1>
-        <p className="mt-1 text-sm text-zinc-500">
+        <h1 className="text-2xl font-bold text-foreground">Profile Settings</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
           Update your editor display name. This is shown on your replies to
           client feedback.
         </p>
@@ -86,10 +84,10 @@ export default function SettingsPage() {
           <div className="space-y-5">
             {/* Current email (read-only) */}
             <div>
-              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              <label className="text-sm font-medium text-foreground">
                 Email
               </label>
-              <div className="mt-1.5 flex items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+              <div className="mt-1.5 flex items-center gap-2 rounded-lg border border-border bg-muted px-3 py-2.5 text-sm text-muted-foreground">
                 <span className="truncate">{email}</span>
               </div>
             </div>

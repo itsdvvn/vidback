@@ -24,10 +24,8 @@ export function CommentItem({
     <div
       className={cn(
         "group rounded-lg border p-3 transition-colors",
-        isResolved
-          ? "border-zinc-100 bg-zinc-50/50 dark:border-zinc-800 dark:bg-zinc-900/50"
-          : "border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800",
-        onSeek && "cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-600",
+        isResolved ? "border-border bg-muted/50" : "border-border bg-card",
+        onSeek && "cursor-pointer hover:border-primary/30",
         className,
       )}
       onClick={() => onSeek?.(comment.timestamp)}
@@ -38,15 +36,13 @@ export function CommentItem({
           <span
             className={cn(
               "text-sm font-medium truncate",
-              isResolved
-                ? "text-zinc-400 dark:text-zinc-500"
-                : "text-zinc-900 dark:text-zinc-100",
+              isResolved ? "text-muted-foreground/70" : "text-foreground",
             )}
           >
             {comment.authorName}
           </span>
           {comment.parentId && (
-            <CornerDownRight className="h-3.5 w-3.5 text-zinc-300 dark:text-zinc-600 shrink-0" />
+            <CornerDownRight className="h-3.5 w-3.5 text-muted-foreground/70 shrink-0" />
           )}
         </div>
         <button
@@ -54,7 +50,7 @@ export function CommentItem({
             e.stopPropagation();
             onSeek?.(comment.timestamp);
           }}
-          className="flex items-center gap-1 text-xs text-zinc-400 hover:text-indigo-500 shrink-0 transition-colors"
+          className="flex items-center gap-1 text-xs text-muted-foreground/70 hover:text-primary shrink-0 transition-colors"
         >
           <Clock className="h-3 w-3" />
           {formatTimestamp(comment.timestamp)}
@@ -66,8 +62,8 @@ export function CommentItem({
         className={cn(
           "text-sm",
           isResolved
-            ? "text-zinc-400 line-through dark:text-zinc-500"
-            : "text-zinc-700 dark:text-zinc-300",
+            ? "text-muted-foreground/70 line-through"
+            : "text-foreground",
         )}
       >
         {comment.content}
@@ -87,9 +83,10 @@ export function CommentItem({
             e.stopPropagation();
             if (onClickThread) onClickThread();
           }}
-          className="mt-2 text-xs font-medium text-indigo-500 hover:text-indigo-600 dark:text-indigo-400"
+          className="mt-2 text-xs font-medium text-primary hover:text-primary/90"
         >
-          {comment.replies.length} {comment.replies.length === 1 ? "reply" : "replies"}
+          {comment.replies.length}{" "}
+          {comment.replies.length === 1 ? "reply" : "replies"}
         </button>
       )}
     </div>

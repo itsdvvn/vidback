@@ -135,10 +135,10 @@ export function ProjectForm({
       <Card className="max-w-xl">
         <div className="space-y-5">
           <div>
-            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+            <h2 className="text-lg font-semibold text-foreground">
               New Project
             </h2>
-            <p className="mt-1 text-sm text-zinc-500">
+            <p className="mt-1 text-sm text-muted-foreground">
               Create a project and share it with your client for feedback.
             </p>
           </div>
@@ -157,7 +157,7 @@ export function ProjectForm({
 
           {/* Toggle: URL vs Upload */}
           <div>
-            <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <label className="text-sm font-medium text-foreground">
               Video Source
             </label>
             <div className="mt-2 flex gap-2">
@@ -166,8 +166,8 @@ export function ProjectForm({
                 onClick={() => setUseUrl(true)}
                 className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
                   useUrl
-                    ? "border-indigo-500 bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400"
-                    : "border-zinc-200 text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-400"
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border text-muted-foreground hover:bg-muted"
                 }`}
               >
                 <Link2 className="h-4 w-4" />
@@ -178,8 +178,8 @@ export function ProjectForm({
                 onClick={() => setUseUrl(false)}
                 className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
                   !useUrl
-                    ? "border-indigo-500 bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400"
-                    : "border-zinc-200 text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-400"
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border text-muted-foreground hover:bg-muted"
                 }`}
               >
                 <Upload className="h-4 w-4" />
@@ -203,25 +203,25 @@ export function ProjectForm({
             />
           ) : (
             <div>
-              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              <label className="text-sm font-medium text-foreground">
                 Video File
               </label>
               <div className="mt-2">
-                <label className="flex cursor-pointer flex-col items-center gap-3 rounded-xl border-2 border-dashed border-zinc-300 px-6 py-10 text-center hover:border-indigo-400 dark:border-zinc-600 dark:hover:border-indigo-400 transition-colors">
+                <label className="flex cursor-pointer flex-col items-center gap-3 rounded-xl border-2 border-dashed border-border px-6 py-10 text-center hover:border-primary transition-colors">
                   {videoFile ? (
-                    <div className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
-                      <Film className="h-5 w-5 text-indigo-500" />
+                    <div className="flex items-center gap-2 text-sm text-foreground">
+                      <Film className="h-5 w-5 text-primary" />
                       {videoFile.name} (
                       {(videoFile.size / (1024 * 1024)).toFixed(1)} MB)
                     </div>
                   ) : (
                     <>
-                      <Upload className="h-8 w-8 text-zinc-400" />
+                      <Upload className="h-8 w-8 text-muted-foreground/70" />
                       <div>
-                        <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                        <p className="text-sm font-medium text-foreground">
                           Click to select a video
                         </p>
-                        <p className="mt-1 text-xs text-zinc-400">
+                        <p className="mt-1 text-xs text-muted-foreground/70">
                           MP4, WebM, or MOV (max 2GB)
                         </p>
                       </div>
@@ -248,18 +248,16 @@ export function ProjectForm({
           {isUploading && (
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-zinc-600 dark:text-zinc-400">
+                <span className="text-muted-foreground">
                   {localUploading
                     ? "Uploading to Cloudflare R2…"
                     : "Creating project…"}
                 </span>
-                <span className="font-medium text-zinc-700 dark:text-zinc-300">
-                  {progress}%
-                </span>
+                <span className="font-medium text-foreground">{progress}%</span>
               </div>
-              <div className="h-2 w-full rounded-full bg-zinc-200 dark:bg-zinc-700 overflow-hidden">
+              <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
                 <div
-                  className="h-full rounded-full bg-indigo-500 transition-all duration-300"
+                  className="h-full rounded-full bg-primary transition-all duration-300"
                   style={{ width: `${progress}%` }}
                 />
               </div>

@@ -33,8 +33,8 @@ export function ShareLinkCopy({ shareToken }: ShareLinkCopyProps) {
   };
 
   return (
-    <div className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 dark:border-zinc-700 dark:bg-zinc-800/50">
-      <code className="flex-1 text-sm font-mono text-zinc-600 dark:text-zinc-400 truncate">
+    <div className="flex items-center gap-2 rounded-xl border border-border bg-muted px-4 py-2.5">
+      <code className="flex-1 text-sm font-mono text-muted-foreground truncate">
         {link}
       </code>
       <Button
@@ -58,7 +58,7 @@ export function ShareLinkCopy({ shareToken }: ShareLinkCopyProps) {
         href={`/v/${shareToken}`}
         target="_blank"
         rel="noopener noreferrer"
-        className="shrink-0 rounded-lg p-2 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 dark:hover:text-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+        className="shrink-0 rounded-lg p-2 text-muted-foreground/70 hover:text-foreground hover:bg-muted transition-colors"
         title="Open in new tab"
       >
         <ExternalLink className="h-4 w-4" />

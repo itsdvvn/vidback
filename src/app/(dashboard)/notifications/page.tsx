@@ -119,10 +119,7 @@ export default function NotificationsPage() {
         </div>
         <div className="space-y-4">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div
-              key={i}
-              className="rounded-xl border border-zinc-200 p-5 dark:border-zinc-800"
-            >
+            <div key={i} className="rounded-xl border border-border p-5">
               <Skeleton className="h-5 w-2/3" />
               <Skeleton className="mt-2 h-4 w-1/3" />
               <Skeleton className="mt-3 h-4 w-full" />
@@ -169,10 +166,8 @@ export default function NotificationsPage() {
     <div className="mx-auto max-w-3xl px-6 py-8">
       <div className="mb-8 flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">
-            Notifications
-          </h1>
-          <p className="mt-1 text-sm text-zinc-500">
+          <h1 className="text-2xl font-bold text-foreground">Notifications</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
             {notifications.length}{" "}
             {notifications.length === 1 ? "comment" : "comments"} across your
             projects — {unresolvedCount} unresolved
@@ -213,16 +208,16 @@ export default function NotificationsPage() {
                   <div className="min-w-0 flex-1">
                     {/* Project name & author */}
                     <div className="flex items-center gap-2 mb-1">
-                      <MessageSquare className="h-4 w-4 shrink-0 text-zinc-400" />
+                      <MessageSquare className="h-4 w-4 shrink-0 text-muted-foreground/70" />
                       <span
                         className={cn(
-                          "text-sm text-zinc-900 dark:text-zinc-100 truncate",
+                          "text-sm text-foreground truncate",
                           unread ? "font-semibold" : "font-medium",
                         )}
                       >
                         {n.projectName}
                       </span>
-                      <span className="text-xs text-zinc-400 shrink-0">
+                      <span className="text-xs text-muted-foreground/70 shrink-0">
                         by {n.authorName}
                       </span>
                       {unread && (
@@ -231,18 +226,18 @@ export default function NotificationsPage() {
                     </div>
 
                     {/* Comment content */}
-                    <p className="text-sm text-zinc-600 dark:text-zinc-400 line-clamp-2">
+                    <p className="text-sm text-muted-foreground line-clamp-2">
                       {truncate(n.content, 100)}
                     </p>
 
                     {/* Meta row */}
                     <div className="mt-2 flex items-center gap-3 flex-wrap">
-                      <span className="inline-flex items-center gap-1 text-xs text-zinc-400">
+                      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground/70">
                         <Clock className="h-3 w-3" />
                         {relativeTime(new Date(n.createdAt))}
                       </span>
 
-                      <span className="text-xs text-zinc-400">
+                      <span className="text-xs text-muted-foreground/70">
                         at {formatTimestamp(n.timestamp)}
                       </span>
 

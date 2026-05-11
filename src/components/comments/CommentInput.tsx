@@ -116,21 +116,18 @@ export function CommentInput({
   return (
     <form
       onSubmit={handleSubmit}
-      className={cn(
-        "rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800/50",
-        className,
-      )}
+      className={cn("rounded-xl border border-border bg-card p-4", className)}
     >
       {!parentId && (
         <div className="mb-3 flex items-center justify-between">
-          <span className="flex items-center gap-2 text-sm font-medium text-indigo-600 dark:text-indigo-400">
+          <span className="flex items-center gap-2 text-sm font-medium text-primary">
             <MessageSquarePlus className="h-4 w-4" />
             New Comment at {timestamp.toFixed(1)}s
           </span>
           <button
             type="button"
             onClick={cancelComment}
-            className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+            className="text-muted-foreground/70 hover:text-foreground"
           >
             <X className="h-4 w-4" />
           </button>
@@ -152,11 +149,9 @@ export function CommentInput({
           />
         )}
         {defaultName && (
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-muted-foreground">
             {parentId ? "Replying" : "Commenting"} as{" "}
-            <span className="font-medium text-zinc-700 dark:text-zinc-300">
-              {defaultName}
-            </span>
+            <span className="font-medium text-foreground">{defaultName}</span>
           </p>
         )}
         <div className="flex flex-col gap-1">
@@ -169,12 +164,12 @@ export function CommentInput({
             }}
             rows={3}
             className={cn(
-              "w-full rounded-lg border bg-white px-3 py-2 text-sm text-zinc-900 resize-none",
-              "placeholder:text-zinc-400",
+              "w-full rounded-lg border bg-card px-3 py-2 text-sm text-foreground resize-none",
+              "placeholder:text-muted-foreground/70",
               "focus:outline-none focus:ring-2 focus:ring-offset-0",
               contentError
                 ? "border-red-300 focus:ring-red-500"
-                : "border-zinc-200 focus:ring-indigo-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100",
+                : "border-border focus:ring-ring",
             )}
           />
           {contentError && (

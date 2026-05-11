@@ -25,9 +25,9 @@ export function ProjectCard({
 }: ProjectCardProps) {
   return (
     <Link href={`/projects/${project.id}`}>
-      <Card className="group h-full cursor-pointer transition-all hover:shadow-lg hover:border-indigo-300 dark:hover:border-indigo-600">
+      <Card className="group h-full cursor-pointer transition-all hover:shadow-lg hover:border-primary/30">
         {/* Thumbnail */}
-        <div className="mb-4 aspect-video rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center overflow-hidden relative">
+        <div className="mb-4 aspect-video rounded-lg bg-muted flex items-center justify-center overflow-hidden relative">
           {project.thumbnailUrl ? (
             <img
               src={project.thumbnailUrl}
@@ -36,12 +36,12 @@ export function ProjectCard({
               loading="lazy"
             />
           ) : (
-            <Film className="h-10 w-10 text-zinc-300 dark:text-zinc-600 group-hover:text-indigo-400 transition-colors" />
+            <Film className="h-10 w-10 text-muted-foreground/70 group-hover:text-primary transition-colors" />
           )}
         </div>
 
         <div className="space-y-2">
-          <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+          <h3 className="font-semibold text-foreground truncate group-hover:text-primary transition-colors">
             {project.name}
           </h3>
 
@@ -53,7 +53,7 @@ export function ProjectCard({
             </div>
           )}
 
-          <div className="flex items-center gap-3 text-xs text-zinc-500">
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
               <MessageSquare className="h-3.5 w-3.5" />
               {commentCount} {commentCount === 1 ? "comment" : "comments"}
@@ -63,7 +63,7 @@ export function ProjectCard({
             )}
           </div>
 
-          <div className="flex items-center gap-1 text-xs text-zinc-400">
+          <div className="flex items-center gap-1 text-xs text-muted-foreground/70">
             <Calendar className="h-3 w-3" />
             {new Date(project.createdAt).toLocaleDateString()}
           </div>

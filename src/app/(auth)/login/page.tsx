@@ -48,10 +48,10 @@ export default function LoginPage() {
     <Card>
       <form onSubmit={handleSubmit} className="space-y-5">
         <div>
-          <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">
+          <h1 className="text-xl font-semibold text-foreground">
             Welcome back
           </h1>
-          <p className="mt-1 text-sm text-zinc-500">
+          <p className="mt-1 text-sm text-muted-foreground">
             Sign in to your editor account.
           </p>
         </div>
@@ -80,8 +80,8 @@ export default function LoginPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
-          <p className="mt-1 text-right text-xs text-zinc-400">
-            <a href="#" className="hover:text-indigo-500 transition-colors">
+          <p className="mt-1 text-right text-xs text-muted-foreground/70">
+            <a href="#" className="hover:text-primary transition-colors">
               Forgot password?
             </a>
           </p>
@@ -91,11 +91,11 @@ export default function LoginPage() {
           Sign In
         </Button>
 
-        <p className="text-center text-sm text-zinc-500">
+        <p className="text-center text-sm text-muted-foreground">
           Don&apos;t have an account?{" "}
           <Link
             href="/signup"
-            className="font-medium text-indigo-600 hover:text-indigo-500"
+            className="font-medium text-primary hover:text-primary/90"
           >
             Sign up
           </Link>

@@ -18,9 +18,9 @@ type ProjectWithCounts = Project & {
 
 export default function DashboardPage() {
   const [projects, setProjects] = useState<ProjectWithCounts[]>([]);
-  const [status, setStatus] = useState<"loading" | "empty" | "error" | "success">(
-    "loading",
-  );
+  const [status, setStatus] = useState<
+    "loading" | "empty" | "error" | "success"
+  >("loading");
   const [error, setError] = useState<string>("");
 
   const fetchProjects = async () => {
@@ -57,10 +57,7 @@ export default function DashboardPage() {
         </div>
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div
-              key={i}
-              className="rounded-xl border border-zinc-200 p-6 dark:border-zinc-800"
-            >
+            <div key={i} className="rounded-xl border border-border p-6">
               <Skeleton className="aspect-video rounded-lg" />
               <Skeleton className="mt-4 h-5 w-3/4" />
               <Skeleton className="mt-2 h-4 w-1/2" />
@@ -78,7 +75,10 @@ export default function DashboardPage() {
         <EmptyState
           icon={<AlertCircle className="h-16 w-16 text-red-400" />}
           title="Failed to load projects"
-          description={error || "Could not connect to the database. Make sure PostgreSQL is running."}
+          description={
+            error ||
+            "Could not connect to the database. Make sure PostgreSQL is running."
+          }
           action={
             <Button onClick={fetchProjects}>
               <RefreshCw className="h-4 w-4" />
@@ -121,12 +121,10 @@ export default function DashboardPage() {
     <div className="mx-auto max-w-6xl px-6 py-8">
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">
-            Projects
-          </h1>
-          <p className="mt-1 text-sm text-zinc-500">
-            {projects.length} {projects.length === 1 ? "project" : "projects"}{" "}
-            — {totalOpen} open comments
+          <h1 className="text-2xl font-bold text-foreground">Projects</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {projects.length} {projects.length === 1 ? "project" : "projects"} —{" "}
+            {totalOpen} open comments
           </p>
         </div>
         <Link href="/projects/new">

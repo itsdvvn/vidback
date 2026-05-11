@@ -25,7 +25,7 @@ export function ResolveButton({
         "shrink-0 rounded-full p-1.5 transition-colors",
         isResolved
           ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400"
-          : "bg-zinc-100 text-zinc-400 hover:bg-zinc-200 hover:text-zinc-600 dark:bg-zinc-800 dark:hover:bg-zinc-700",
+          : "bg-muted text-muted-foreground/70 hover:bg-accent hover:text-foreground",
         className,
       )}
     >

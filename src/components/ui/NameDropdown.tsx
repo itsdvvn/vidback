@@ -12,9 +12,14 @@ function loadSavedNames(): string[] {
     const raw = localStorage.getItem(SAVED_NAMES_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed.filter((n): n is string => typeof n === "string" && n.trim().length > 0);
+      if (Array.isArray(parsed))
+        return parsed.filter(
+          (n): n is string => typeof n === "string" && n.trim().length > 0,
+        );
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   return [];
 }
 
@@ -26,7 +31,9 @@ function persistName(name: string) {
   if (names.length > 10) names.length = 10;
   try {
     localStorage.setItem(SAVED_NAMES_KEY, JSON.stringify(names));
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 export interface NameDropdownProps {
@@ -38,7 +45,13 @@ export interface NameDropdownProps {
   autoFocus?: boolean;
 }
 
-export function NameDropdown({ value, onChange, error, onConfirm, autoFocus }: NameDropdownProps) {
+export function NameDropdown({
+  value,
+  onChange,
+  error,
+  onConfirm,
+  autoFocus,
+}: NameDropdownProps) {
   const [open, setOpen] = useState(false);
   const [savedNames, setSavedNames] = useState<string[]>([]);
   const [highlightIndex, setHighlightIndex] = useState(-1);
@@ -58,8 +71,10 @@ export function NameDropdown({ value, onChange, error, onConfirm, autoFocus }: N
     if (!open) return;
     const handler = (e: MouseEvent) => {
       if (
-        inputRef.current && !inputRef.current.contains(e.target as Node) &&
-        dropdownRef.current && !dropdownRef.current.contains(e.target as Node)
+        inputRef.current &&
+        !inputRef.current.contains(e.target as Node) &&
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
       ) {
         setOpen(false);
       }
@@ -117,7 +132,7 @@ export function NameDropdown({ value, onChange, error, onConfirm, autoFocus }: N
   return (
     <div className="relative">
       <div className="relative">
-        <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none" />
+        <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/70 pointer-events-none" />
         <input
           ref={inputRef}
           type="text"
@@ -132,12 +147,12 @@ export function NameDropdown({ value, onChange, error, onConfirm, autoFocus }: N
           onKeyDown={handleKeyDown}
           autoFocus={autoFocus}
           className={cn(
-            "h-10 w-full rounded-lg border bg-white pl-9 pr-3 text-sm text-zinc-900",
-            "placeholder:text-zinc-400",
+            "h-10 w-full rounded-lg border bg-card pl-9 pr-3 text-sm text-foreground",
+            "placeholder:text-muted-foreground/70",
             "focus:outline-none focus:ring-2 focus:ring-offset-0",
             error
               ? "border-red-300 focus:ring-red-500"
-              : "border-zinc-200 focus:ring-indigo-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100",
+              : "border-border focus:ring-ring",
           )}
         />
       </div>
@@ -148,7 +163,7 @@ export function NameDropdown({ value, onChange, error, onConfirm, autoFocus }: N
       {open && (
         <div
           ref={dropdownRef}
-          className="absolute top-full left-0 right-0 z-50 mt-1 max-h-48 overflow-y-auto rounded-lg border border-zinc-200 bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-800"
+          className="absolute top-full left-0 right-0 z-50 mt-1 max-h-48 overflow-y-auto rounded-lg border border-border bg-card py-1 shadow-lg"
         >
           {filtered.length > 0 ? (
             filtered.map((name, i) => (
@@ -163,20 +178,20 @@ export function NameDropdown({ value, onChange, error, onConfirm, autoFocus }: N
                 className={cn(
                   "flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors",
                   i === highlightIndex
-                    ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400"
-                    : "text-zinc-700 dark:text-zinc-300",
+                    ? "bg-primary/10 text-primary"
+                    : "text-foreground",
                   name === value && "font-medium",
                 )}
               >
-                <User className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
+                <User className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
                 <span className="flex-1 truncate">{name}</span>
                 {name === value && (
-                  <Check className="h-3.5 w-3.5 shrink-0 text-indigo-500" />
+                  <Check className="h-3.5 w-3.5 shrink-0 text-primary" />
                 )}
               </button>
             ))
           ) : (
-            <div className="px-3 py-2 text-sm text-zinc-400">
+            <div className="px-3 py-2 text-sm text-muted-foreground/70">
               {value.trim() ? (
                 <span className="flex items-center gap-2">
                   <Plus className="h-3.5 w-3.5" />
@@ -199,7 +214,7 @@ export function NameDropdown({ value, onChange, error, onConfirm, autoFocus }: N
                 e.preventDefault();
                 handleSelect(value.trim());
               }}
-              className="flex w-full items-center gap-2 border-t border-zinc-100 px-3 py-2 text-left text-sm text-indigo-600 hover:bg-indigo-50 dark:border-zinc-700 dark:text-indigo-400 dark:hover:bg-indigo-900/30"
+              className="flex w-full items-center gap-2 border-t border-border px-3 py-2 text-left text-sm text-primary hover:bg-primary/10"
             >
               <Plus className="h-3.5 w-3.5" />
               <span>Add &quot;{value.trim()}&quot;</span>

@@ -56,10 +56,10 @@ export default function SignUpPage() {
     <Card>
       <form onSubmit={handleSubmit} className="space-y-5">
         <div>
-          <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">
+          <h1 className="text-xl font-semibold text-foreground">
             Create your account
           </h1>
-          <p className="mt-1 text-sm text-zinc-500">
+          <p className="mt-1 text-sm text-muted-foreground">
             Register as a new editor.
           </p>
         </div>
@@ -111,11 +111,11 @@ export default function SignUpPage() {
           Create Account
         </Button>
 
-        <p className="text-center text-sm text-zinc-500">
+        <p className="text-center text-sm text-muted-foreground">
           Already have an account?{" "}
           <Link
             href="/login"
-            className="font-medium text-indigo-600 hover:text-indigo-500"
+            className="font-medium text-primary hover:text-primary/90"
           >
             Sign in
           </Link>

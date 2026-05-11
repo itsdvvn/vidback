@@ -51,10 +51,10 @@ export function CommentList({
       <div className="flex flex-col items-center justify-center gap-4 py-16 px-4">
         <AlertCircle className="h-10 w-10 text-red-400" />
         <div className="text-center">
-          <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+          <p className="text-sm font-medium text-foreground">
             Failed to load comments
           </p>
-          <p className="mt-1 text-sm text-zinc-500">
+          <p className="mt-1 text-sm text-muted-foreground">
             There was an issue loading the comments for this project.
           </p>
         </div>
@@ -72,12 +72,10 @@ export function CommentList({
   if (status === "empty" || comments.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-16 px-4">
-        <MessageCircle className="h-10 w-10 text-zinc-300 dark:text-zinc-600" />
+        <MessageCircle className="h-10 w-10 text-muted-foreground/70" />
         <div className="text-center">
-          <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-            No comments yet
-          </p>
-          <p className="mt-1 text-sm text-zinc-500">
+          <p className="text-sm font-medium text-foreground">No comments yet</p>
+          <p className="mt-1 text-sm text-muted-foreground">
             {isEditor
               ? "Share this project with your client to start getting feedback."
               : 'Click "Add Comment" while watching the video to leave feedback.'}

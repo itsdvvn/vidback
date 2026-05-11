@@ -16,7 +16,7 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
       onClick={toggleTheme}
       title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
       className={cn(
-        "rounded-lg p-2 text-zinc-500 hover:text-zinc-700 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:text-zinc-200 dark:hover:bg-zinc-700 transition-colors",
+        "rounded-lg p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors",
         className,
       )}
     >

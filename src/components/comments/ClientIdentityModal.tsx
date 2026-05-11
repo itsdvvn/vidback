@@ -172,8 +172,8 @@ export function ClientIdentityModal({ onComplete }: ClientIdentityModalProps) {
       >
         <Card className="w-full max-w-sm animate-in fade-in zoom-in duration-200">
           <CardHeader>
-            <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 dark:bg-indigo-900/40">
-              <Mail className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+            <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+              <Mail className="h-5 w-5 text-primary" />
             </div>
             <CardTitle className="text-center">Enter your email</CardTitle>
             <CardDescription className="text-center">
@@ -218,8 +218,8 @@ export function ClientIdentityModal({ onComplete }: ClientIdentityModalProps) {
       >
         <Card className="w-full max-w-sm animate-in fade-in zoom-in duration-200">
           <CardHeader>
-            <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 dark:bg-indigo-900/40">
-              <User className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+            <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+              <User className="h-5 w-5 text-primary" />
             </div>
             <CardTitle className="text-center">
               What&apos;s your name?

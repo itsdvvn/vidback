@@ -53,7 +53,7 @@ export function CommentThread({
 
       {/* Replies */}
       {comment.replies && comment.replies.length > 0 && (
-        <div className="ml-6 space-y-2 border-l-2 border-zinc-100 pl-3 dark:border-zinc-700">
+        <div className="ml-6 space-y-2 border-l-2 border-border pl-3">
           {comment.replies.map((reply) => (
             <div key={reply.id} className="flex items-start gap-2">
               <div className="flex-1 min-w-0">
@@ -87,7 +87,7 @@ export function CommentThread({
           ) : (
             <button
               onClick={() => setShowReplyInput(true)}
-              className="text-xs font-medium text-indigo-500 hover:text-indigo-600 dark:text-indigo-400"
+              className="text-xs font-medium text-primary hover:text-primary/90"
             >
               Reply
             </button>

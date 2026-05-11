@@ -189,7 +189,7 @@ export default function ProjectDetailPage() {
         <div className="flex flex-col items-center justify-center py-20">
           <AlertCircle className="h-12 w-12 text-red-400 mb-4" />
           <h2 className="text-lg font-semibold mb-2">Failed to load project</h2>
-          <p className="text-sm text-zinc-500 mb-4">{error}</p>
+          <p className="text-sm text-muted-foreground mb-4">{error}</p>
           <Button onClick={fetchData}>
             <RefreshCw className="h-4 w-4" /> Retry
           </Button>
@@ -205,12 +205,12 @@ export default function ProjectDetailPage() {
           <div className="flex items-center gap-3">
             <Link
               href="/dashboard"
-              className="rounded-lg p-2 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 dark:hover:text-zinc-200 dark:hover:bg-zinc-800 transition-colors"
+              className="rounded-lg p-2 text-muted-foreground/70 hover:text-foreground hover:bg-muted transition-colors"
             >
               <ArrowLeft className="h-5 w-5" />
             </Link>
             <div>
-              <h1 className="text-xl font-bold text-zinc-900 dark:text-white">
+              <h1 className="text-xl font-bold text-foreground">
                 {project?.name}
               </h1>
               <div className="flex items-center gap-2 mt-1">
@@ -218,7 +218,7 @@ export default function ProjectDetailPage() {
                   current={status as any}
                   onChange={handleStatusChange}
                 />
-                <p className="text-sm text-zinc-500">
+                <p className="text-sm text-muted-foreground">
                   {unresolvedCount} unresolved, {comments.length} total
                 </p>
               </div>
@@ -242,11 +242,11 @@ export default function ProjectDetailPage() {
                 onClick={() => !deleting && setShowDeleteConfirm(false)}
               />
               <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                <div className="w-full max-w-sm rounded-xl border border-zinc-200 bg-white p-6 shadow-xl dark:border-zinc-700 dark:bg-zinc-800">
-                  <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">
+                <div className="w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-xl">
+                  <h3 className="text-lg font-semibold text-foreground">
                     Delete project?
                   </h3>
-                  <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
+                  <p className="mt-2 text-sm text-muted-foreground">
                     This action cannot be undone. All comments and data
                     associated with this project will be permanently removed.
                   </p>
@@ -254,7 +254,7 @@ export default function ProjectDetailPage() {
                     <button
                       onClick={() => setShowDeleteConfirm(false)}
                       disabled={deleting}
-                      className="rounded-lg px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50"
+                      className="rounded-lg px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50"
                     >
                       Cancel
                     </button>
@@ -351,12 +351,12 @@ function ProjectVideoSection({
         showCommentButton={false}
         comments={comments}
       />
-      <div className="rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
-        <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
-          <h2 className="font-semibold text-sm text-zinc-900 dark:text-zinc-100">
+      <div className="rounded-xl border border-border bg-card">
+        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+          <h2 className="font-semibold text-sm text-foreground">
             Client Feedback ({comments.length})
           </h2>
-          <span className="text-xs text-zinc-400">
+          <span className="text-xs text-muted-foreground/70">
             Synced — all changes appear for the client
           </span>
         </div>

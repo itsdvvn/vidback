@@ -162,7 +162,7 @@ export function VideoPlayer({
 
       {/* Comment mode overlay banner */}
       {isCommenting && (
-        <div className="absolute top-3 left-1/2 z-10 -translate-x-1/2 rounded-full bg-indigo-600 px-4 py-1.5 text-sm font-medium text-white shadow-lg">
+        <div className="absolute top-3 left-1/2 z-10 -translate-x-1/2 rounded-full bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground shadow-lg">
           Add Comment — Time: {frozenTimestamp?.toFixed(1)}s
         </div>
       )}

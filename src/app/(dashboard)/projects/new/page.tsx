@@ -2,7 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ProjectForm, type ProjectFormData } from "@/components/dashboard/ProjectForm";
+import {
+  ProjectForm,
+  type ProjectFormData,
+} from "@/components/dashboard/ProjectForm";
 import { ShareLinkCopy } from "@/components/dashboard/ShareLinkCopy";
 import { Card } from "@/components/ui/Card";
 import { CheckCircle } from "lucide-react";
@@ -47,10 +50,10 @@ export default function NewProjectPage() {
       <div className="mx-auto max-w-xl px-6 py-16">
         <Card className="text-center">
           <CheckCircle className="mx-auto h-12 w-12 text-emerald-500" />
-          <h2 className="mt-4 text-xl font-semibold text-zinc-900 dark:text-zinc-100">
+          <h2 className="mt-4 text-xl font-semibold text-foreground">
             Project Created!
           </h2>
-          <p className="mt-2 text-sm text-zinc-500">
+          <p className="mt-2 text-sm text-muted-foreground">
             <strong>{created.name}</strong> is ready for review. Share the link
             below with your client.
           </p>
@@ -64,9 +67,7 @@ export default function NewProjectPage() {
             >
               Back to Dashboard
             </Button>
-            <Button
-              onClick={() => router.push(`/projects/${created.id}`)}
-            >
+            <Button onClick={() => router.push(`/projects/${created.id}`)}>
               View Project
             </Button>
           </div>
@@ -78,9 +79,7 @@ export default function NewProjectPage() {
   return (
     <div className="mx-auto max-w-xl px-6 py-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">
-          New Project
-        </h1>
+        <h1 className="text-2xl font-bold text-foreground">New Project</h1>
       </div>
 
       {error && (

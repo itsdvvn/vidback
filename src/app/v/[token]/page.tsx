@@ -166,7 +166,7 @@ export default function ClientReviewPage({
   // ─── Loading ───
   if (loadState === "loading") {
     return (
-      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
+      <div className="min-h-screen bg-background">
         <div className="mx-auto max-w-5xl px-4 py-4 space-y-4">
           <Skeleton className="h-10 w-64" />
           <Skeleton className="aspect-video w-full rounded-xl" />
@@ -179,16 +179,16 @@ export default function ClientReviewPage({
   // ─── Error ───
   if (loadState === "error") {
     return (
-      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="flex flex-col items-center gap-4 text-center px-4">
           <AlertCircle className="h-12 w-12 text-red-400" />
           <div>
-            <h1 className="text-lg font-semibold text-zinc-900 dark:text-white">
+            <h1 className="text-lg font-semibold text-foreground">
               {error === "Project not found"
                 ? "Project Not Found"
                 : "Failed to Load"}
             </h1>
-            <p className="mt-1 text-sm text-zinc-500">
+            <p className="mt-1 text-sm text-muted-foreground">
               {error === "Project not found"
                 ? "This link may be invalid or the project has been deleted."
                 : error}
@@ -204,14 +204,14 @@ export default function ClientReviewPage({
 
   return (
     <ToastProvider>
-      <div className="min-h-screen bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-white">
+      <div className="min-h-screen bg-background text-foreground">
         <VideoPlayerProvider>
-          <header className="flex items-center justify-between px-4 py-3 border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+          <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-card">
             <div className="flex items-center gap-3">
-              <Film className="h-5 w-5 text-indigo-500" />
+              <Film className="h-5 w-5 text-primary" />
               <div>
                 <h1 className="text-sm font-semibold">{project?.name}</h1>
-                <p className="text-xs text-zinc-400 dark:text-zinc-500">
+                <p className="text-xs text-muted-foreground/70">
                   Leave time-coded feedback — no login required.
                 </p>
               </div>
@@ -227,33 +227,33 @@ export default function ClientReviewPage({
             clientName={clientName}
           />
 
-          <footer className="flex items-center justify-center gap-6 py-4 text-xs text-zinc-400 dark:text-zinc-500 border-t border-zinc-200 dark:border-zinc-800">
+          <footer className="flex items-center justify-center gap-6 py-4 text-xs text-muted-foreground/70 border-t border-border">
             <span>
-              <kbd className="rounded border border-zinc-300 bg-zinc-100 px-1.5 py-0.5 font-mono text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+              <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-muted-foreground">
                 Space
               </kbd>{" "}
               Play/Pause
             </span>
             <span>
-              <kbd className="rounded border border-zinc-300 bg-zinc-100 px-1.5 py-0.5 font-mono text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+              <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-muted-foreground">
                 J
               </kbd>{" "}
               Rewind 10s
             </span>
             <span>
-              <kbd className="rounded border border-zinc-300 bg-zinc-100 px-1.5 py-0.5 font-mono text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+              <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-muted-foreground">
                 K
               </kbd>{" "}
               Pause
             </span>
             <span>
-              <kbd className="rounded border border-zinc-300 bg-zinc-100 px-1.5 py-0.5 font-mono text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+              <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-muted-foreground">
                 L
               </kbd>{" "}
               Forward 10s
             </span>
             <span>
-              <kbd className="rounded border border-zinc-300 bg-zinc-100 px-1.5 py-0.5 font-mono text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+              <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-muted-foreground">
                 C
               </kbd>{" "}
               Add Comment
@@ -306,8 +306,8 @@ function ReviewVideoSection({
         defaultName={clientName || undefined}
       />
 
-      <div className="rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
-        <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
+      <div className="rounded-xl border border-border bg-card">
+        <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <h2 className="font-semibold text-sm">
             Comments ({comments.length})
           </h2>

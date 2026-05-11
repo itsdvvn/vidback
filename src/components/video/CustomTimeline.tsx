@@ -50,7 +50,7 @@ export function CustomTimeline() {
         <div className="absolute top-1/2 left-0 right-0 h-1.5 -translate-y-1/2 rounded-full bg-zinc-700 group-hover:h-2 transition-all">
           {/* Filled track */}
           <div
-            className="absolute top-0 left-0 h-full rounded-full bg-indigo-500"
+            className="absolute top-0 left-0 h-full rounded-full bg-primary"
             style={{ width: `${progress}%` }}
           />
           {/* Comment markers */}
@@ -75,7 +75,7 @@ export function CustomTimeline() {
         </div>
         {/* Thumb */}
         <div
-          className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 h-4 w-4 rounded-full bg-white shadow-md ring-2 ring-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity"
+          className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 h-4 w-4 rounded-full bg-white shadow-md ring-2 ring-ring opacity-0 group-hover:opacity-100 transition-opacity"
           style={{ left: `${progress}%` }}
         />
       </div>
