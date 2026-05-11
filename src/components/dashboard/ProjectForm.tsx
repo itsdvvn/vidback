@@ -9,8 +9,6 @@ import { Upload, Link2, Film } from "lucide-react";
 export interface ProjectFormData {
   name: string;
   videoUrl: string;
-  /** File selected for upload (handled by parent) */
-  videoFile?: File;
 }
 
 export interface ProjectFormProps {
@@ -31,7 +29,11 @@ export function ProjectForm({
   const [nameError, setNameError] = useState("");
   const [urlError, setUrlError] = useState("");
 
-  const handleSubmit = (e: FormEvent) => {
+  // ─── Upload to R2, then submit ───
+  const [localUploading, setLocalUploading] = useState(false);
+  const [localProgress, setLocalProgress] = useState(0);
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
     let valid = true;
@@ -42,14 +44,16 @@ export function ProjectForm({
       setNameError("");
     }
 
-    if (useUrl && !videoUrl.trim()) {
-      setUrlError("Video URL is required.");
-      valid = false;
-    } else if (useUrl && !isValidUrl(videoUrl.trim())) {
-      setUrlError("Please enter a valid URL.");
-      valid = false;
-    } else {
-      setUrlError("");
+    if (useUrl) {
+      if (!videoUrl.trim()) {
+        setUrlError("Video URL is required.");
+        valid = false;
+      } else if (!isValidUrl(videoUrl.trim())) {
+        setUrlError("Please enter a valid URL.");
+        valid = false;
+      } else {
+        setUrlError("");
+      }
     }
 
     if (!useUrl && !videoFile) {
@@ -59,12 +63,72 @@ export function ProjectForm({
 
     if (!valid) return;
 
-    onSubmit({
-      name: name.trim(),
-      videoUrl: useUrl ? videoUrl.trim() : "",
-      videoFile: videoFile ?? undefined,
-    });
+    // URL mode — submit directly
+    if (useUrl) {
+      onSubmit({ name: name.trim(), videoUrl: videoUrl.trim() });
+      return;
+    }
+
+    // Upload mode — upload to R2 first, then submit
+    if (!videoFile) return;
+
+    setLocalUploading(true);
+    setLocalProgress(0);
+
+    try {
+      // 1. Get a presigned URL from our API
+      const uploadRes = await fetch("/api/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          filename: videoFile.name,
+          contentType: videoFile.type || "video/mp4",
+        }),
+      });
+
+      if (!uploadRes.ok) {
+        const errData = await uploadRes.json();
+        throw new Error(errData.error || "Failed to get upload URL");
+      }
+
+      const { presignedPutUrl, presignedGetUrl } = await uploadRes.json();
+
+      // 2. Upload the file directly to R2 via the presigned PUT URL
+      const xhr = new XMLHttpRequest();
+      await new Promise<void>((resolve, reject) => {
+        xhr.upload.addEventListener("progress", (event) => {
+          if (event.lengthComputable) {
+            const pct = Math.round((event.loaded / event.total) * 100);
+            setLocalProgress(pct);
+          }
+        });
+
+        xhr.addEventListener("load", () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve();
+          } else {
+            reject(new Error(`Upload failed with status ${xhr.status}`));
+          }
+        });
+
+        xhr.addEventListener("error", () => reject(new Error("Upload failed")));
+        xhr.open("PUT", presignedPutUrl);
+        xhr.setRequestHeader("Content-Type", videoFile.type || "video/mp4");
+        xhr.send(videoFile);
+      });
+
+      // 3. Submit with the presigned GET URL (valid 7 days)
+      onSubmit({ name: name.trim(), videoUrl: presignedGetUrl });
+    } catch (err) {
+      setUrlError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setLocalUploading(false);
+      setLocalProgress(0);
+    }
   };
+
+  const isUploading = uploading || localUploading;
+  const progress = localProgress > 0 ? localProgress : uploadProgress;
 
   return (
     <form onSubmit={handleSubmit}>
@@ -147,7 +211,8 @@ export function ProjectForm({
                   {videoFile ? (
                     <div className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
                       <Film className="h-5 w-5 text-indigo-500" />
-                      {videoFile.name} ({(videoFile.size / (1024 * 1024)).toFixed(1)} MB)
+                      {videoFile.name} (
+                      {(videoFile.size / (1024 * 1024)).toFixed(1)} MB)
                     </div>
                   ) : (
                     <>
@@ -180,25 +245,29 @@ export function ProjectForm({
             </div>
           )}
 
-          {uploading && (
+          {isUploading && (
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-zinc-600 dark:text-zinc-400">Uploading…</span>
+                <span className="text-zinc-600 dark:text-zinc-400">
+                  {localUploading
+                    ? "Uploading to Cloudflare R2…"
+                    : "Creating project…"}
+                </span>
                 <span className="font-medium text-zinc-700 dark:text-zinc-300">
-                  {uploadProgress}%
+                  {progress}%
                 </span>
               </div>
               <div className="h-2 w-full rounded-full bg-zinc-200 dark:bg-zinc-700 overflow-hidden">
                 <div
                   className="h-full rounded-full bg-indigo-500 transition-all duration-300"
-                  style={{ width: `${uploadProgress}%` }}
+                  style={{ width: `${progress}%` }}
                 />
               </div>
             </div>
           )}
 
           <div className="flex justify-end">
-            <Button type="submit" size="lg" loading={uploading}>
+            <Button type="submit" size="lg" loading={isUploading}>
               Create Project
             </Button>
           </div>

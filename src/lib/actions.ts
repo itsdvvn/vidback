@@ -6,14 +6,30 @@ import { eq, and, isNull, count } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { nanoid } from "nanoid";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+
+// ─── Helpers ───
+
+async function requireAuth() {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  if (!session?.user) {
+    throw new Error("Not authenticated");
+  }
+  return session;
+}
 
 // ─── Projects ───
 
 export async function getEditorProjects() {
-  // TODO: Add auth check once BetterAuth is wired
+  const session = await requireAuth();
+
   const rows = await db
     .select()
     .from(projects)
+    .where(eq(projects.editorId, session.user.id))
     .orderBy(projects.createdAt);
 
   return Promise.all(
@@ -26,9 +42,7 @@ export async function getEditorProjects() {
       const [open] = await db
         .select({ count: count() })
         .from(comments)
-        .where(
-          and(eq(comments.projectId, p.id), isNull(comments.isResolved)),
-        );
+        .where(and(eq(comments.projectId, p.id), isNull(comments.isResolved)));
 
       return {
         ...p,
@@ -40,6 +54,8 @@ export async function getEditorProjects() {
 }
 
 export async function getProjectWithCounts(projectId: string) {
+  const session = await requireAuth();
+
   const [project] = await db
     .select()
     .from(projects)
@@ -47,6 +63,11 @@ export async function getProjectWithCounts(projectId: string) {
     .limit(1);
 
   if (!project) throw new Error("Not found");
+
+  // Ensure the editor owns this project
+  if (project.editorId !== session.user.id) {
+    throw new Error("Forbidden");
+  }
 
   const [total] = await db
     .select({ count: count() })
@@ -56,9 +77,7 @@ export async function getProjectWithCounts(projectId: string) {
   const [open] = await db
     .select({ count: count() })
     .from(comments)
-    .where(
-      and(eq(comments.projectId, projectId), isNull(comments.isResolved)),
-    );
+    .where(and(eq(comments.projectId, projectId), isNull(comments.isResolved)));
 
   return {
     ...project,
@@ -73,6 +92,8 @@ const createProjectSchema = z.object({
 });
 
 export async function createProject(formData: FormData) {
+  const session = await requireAuth();
+
   const parsed = createProjectSchema.parse({
     name: formData.get("name"),
     videoUrl: formData.get("videoUrl"),
@@ -86,7 +107,7 @@ export async function createProject(formData: FormData) {
       name: parsed.name,
       videoUrl: parsed.videoUrl,
       shareToken,
-      editorId: "dev-editor", // TODO: replace with session.user.id
+      editorId: session.user.id,
     })
     .returning();
 
@@ -95,6 +116,18 @@ export async function createProject(formData: FormData) {
 }
 
 export async function updateProjectStatus(projectId: string, status: string) {
+  const session = await requireAuth();
+
+  // Verify ownership
+  const [project] = await db
+    .select({ editorId: projects.editorId })
+    .from(projects)
+    .where(eq(projects.id, projectId))
+    .limit(1);
+
+  if (!project) throw new Error("Not found");
+  if (project.editorId !== session.user.id) throw new Error("Forbidden");
+
   await db
     .update(projects)
     .set({ status, updatedAt: new Date() })
@@ -104,13 +137,37 @@ export async function updateProjectStatus(projectId: string, status: string) {
 }
 
 export async function deleteProject(projectId: string) {
+  const session = await requireAuth();
+
+  // Verify ownership
+  const [project] = await db
+    .select({ editorId: projects.editorId })
+    .from(projects)
+    .where(eq(projects.id, projectId))
+    .limit(1);
+
+  if (!project) throw new Error("Not found");
+  if (project.editorId !== session.user.id) throw new Error("Forbidden");
+
   await db.delete(projects).where(eq(projects.id, projectId));
   revalidatePath("/dashboard");
 }
 
-// ─── Comments ───
+// ─── Comments (Editor) ───
 
 export async function getProjectComments(projectId: string) {
+  const session = await requireAuth();
+
+  // Verify ownership
+  const [project] = await db
+    .select({ editorId: projects.editorId })
+    .from(projects)
+    .where(eq(projects.id, projectId))
+    .limit(1);
+
+  if (!project) throw new Error("Not found");
+  if (project.editorId !== session.user.id) throw new Error("Forbidden");
+
   const all = await db
     .select()
     .from(comments)
@@ -123,6 +180,40 @@ export async function getProjectComments(projectId: string) {
     replies: all.filter((r) => r.parentId === c.id),
   }));
 }
+
+export async function toggleResolve(commentId: number, resolved: boolean) {
+  await requireAuth();
+
+  await db
+    .update(comments)
+    .set({ isResolved: resolved ? new Date() : null })
+    .where(eq(comments.id, commentId));
+
+  revalidatePath("/projects/[id]", "page");
+}
+
+export async function replyToComment(
+  commentId: number,
+  projectId: string,
+  content: string,
+) {
+  const session = await requireAuth();
+
+  const [reply] = await db
+    .insert(comments)
+    .values({
+      projectId,
+      authorName: session.user.name,
+      content,
+      timestamp: 0,
+      parentId: commentId,
+    })
+    .returning();
+
+  return reply;
+}
+
+// ─── Comments (Public / Client) ───
 
 export async function createComment(formData: FormData) {
   const schema = z.object({
@@ -159,32 +250,4 @@ export async function createComment(formData: FormData) {
 
   revalidatePath(`/v/${project.shareToken}`);
   return comment;
-}
-
-export async function toggleResolve(commentId: number, resolved: boolean) {
-  await db
-    .update(comments)
-    .set({ isResolved: resolved ? new Date() : null })
-    .where(eq(comments.id, commentId));
-
-  revalidatePath("/projects/[id]", "page");
-}
-
-export async function replyToComment(
-  commentId: number,
-  projectId: string,
-  content: string,
-) {
-  const [reply] = await db
-    .insert(comments)
-    .values({
-      projectId,
-      authorName: "Editor", // TODO: replace with session.user.name
-      content,
-      timestamp: 0,
-      parentId: commentId,
-    })
-    .returning();
-
-  return reply;
 }

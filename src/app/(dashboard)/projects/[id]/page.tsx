@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import type { Comment } from "@/types";
@@ -12,9 +12,20 @@ import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/Button";
 import { ArrowLeft, AlertCircle, RefreshCw } from "lucide-react";
-import { getProjectWithCounts, getProjectComments, toggleResolve, replyToComment, updateProjectStatus } from "@/lib/actions";
+import {
+  getProjectWithCounts,
+  getProjectComments,
+  toggleResolve,
+  replyToComment,
+  updateProjectStatus,
+} from "@/lib/actions";
 
-const PROJECT_STATUSES = ["Under Review", "In Progress", "Approved", "Needs Revision"] as const;
+const PROJECT_STATUSES = [
+  "Under Review",
+  "In Progress",
+  "Approved",
+  "Needs Revision",
+] as const;
 type ProjectStatus = (typeof PROJECT_STATUSES)[number];
 
 export default function ProjectDetailPage() {
@@ -25,7 +36,9 @@ export default function ProjectDetailPage() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [status, setStatus] = useState<ProjectStatus>("Under Review");
   const [showStatusMenu, setShowStatusMenu] = useState(false);
-  const [loadState, setLoadState] = useState<"loading" | "error" | "ready">("loading");
+  const [loadState, setLoadState] = useState<"loading" | "error" | "ready">(
+    "loading",
+  );
   const [error, setError] = useState("");
 
   const fetchData = useCallback(async () => {
@@ -50,34 +63,78 @@ export default function ProjectDetailPage() {
     fetchData();
   }, [fetchData]);
 
+  // ─── Polling for real-time comment updates ───
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  useEffect(() => {
+    if (loadState !== "ready") return;
+
+    pollingRef.current = setInterval(async () => {
+      try {
+        const commentData = await getProjectComments(projectId);
+        setComments(commentData as Comment[]);
+      } catch {
+        // silent — don't disrupt the editor
+      }
+    }, 10_000);
+
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
+  }, [projectId, loadState]);
+
   const unresolvedCount = comments.filter(
     (c) => c.isResolved === null && c.parentId === null,
   ).length;
   const commentStatus = comments.length === 0 ? "empty" : "success";
 
-  const handleResolve = useCallback(async (commentId: number, resolved: boolean) => {
-    try {
-      await toggleResolve(commentId, resolved);
-      setComments((prev) =>
-        prev.map((c) => {
-          if (c.id === commentId) return { ...c, isResolved: resolved ? new Date() : null };
-          if (c.replies) {
-            return {
-              ...c,
-              replies: c.replies.map((r) =>
-                r.id === commentId
-                  ? { ...r, isResolved: resolved ? new Date() : null }
-                  : r,
-              ),
-            };
-          }
-          return c;
-        }),
-      );
-    } catch {
-      // ignore
-    }
-  }, []);
+  const handleResolve = useCallback(
+    async (commentId: number, resolved: boolean) => {
+      try {
+        await toggleResolve(commentId, resolved);
+        setComments((prev) =>
+          prev.map((c) => {
+            if (c.id === commentId)
+              return { ...c, isResolved: resolved ? new Date() : null };
+            if (c.replies) {
+              return {
+                ...c,
+                replies: c.replies.map((r) =>
+                  r.id === commentId
+                    ? { ...r, isResolved: resolved ? new Date() : null }
+                    : r,
+                ),
+              };
+            }
+            return c;
+          }),
+        );
+      } catch {
+        // ignore
+      }
+    },
+    [],
+  );
+
+  const handleReply = useCallback(
+    async (
+      parentId: number,
+      data: { authorName: string; content: string; timestamp: number },
+    ) => {
+      try {
+        const reply = await replyToComment(parentId, projectId, data.content);
+        setComments((prev) =>
+          prev.map((c) =>
+            c.id === parentId
+              ? { ...c, replies: [...(c.replies || []), reply] }
+              : c,
+          ),
+        );
+      } catch {
+        // ignore
+      }
+    },
+    [projectId],
+  );
 
   const handleStatusChange = async (newStatus: string) => {
     setStatus(newStatus as ProjectStatus);
@@ -85,7 +142,7 @@ export default function ProjectDetailPage() {
     try {
       await updateProjectStatus(projectId, newStatus);
     } catch {
-      // revert on error would need original state; skip for now
+      // ignore
     }
   };
 
@@ -121,7 +178,10 @@ export default function ProjectDetailPage() {
       {/* Top bar */}
       <div className="mb-4 flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
-          <Link href="/dashboard" className="rounded-lg p-2 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 dark:hover:text-zinc-200 dark:hover:bg-zinc-800 transition-colors">
+          <Link
+            href="/dashboard"
+            className="rounded-lg p-2 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 dark:hover:text-zinc-200 dark:hover:bg-zinc-800 transition-colors"
+          >
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
@@ -136,13 +196,26 @@ export default function ProjectDetailPage() {
                   className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:hover:bg-amber-900/50 transition-colors cursor-pointer"
                 >
                   {status}
-                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  <svg
+                    className="h-3 w-3"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M19 9l-7 7-7-7"
+                    />
                   </svg>
                 </button>
                 {showStatusMenu && (
                   <>
-                    <div className="fixed inset-0 z-10" onClick={() => setShowStatusMenu(false)} />
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => setShowStatusMenu(false)}
+                    />
                     <div className="absolute top-full left-0 mt-1 z-20 w-40 rounded-lg border border-zinc-200 bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-800">
                       {PROJECT_STATUSES.map((s) => (
                         <button
@@ -177,8 +250,11 @@ export default function ProjectDetailPage() {
       <VideoPlayerProvider>
         <div className="space-y-6">
           <VideoPlayer
-            src={project?.videoUrl || "https://www.w3schools.com/html/mov_bbb.mp4"}
+            src={
+              project?.videoUrl || "https://www.w3schools.com/html/mov_bbb.mp4"
+            }
             showCommentButton={false}
+            comments={comments}
           />
 
           {/* Comment history */}
@@ -195,6 +271,7 @@ export default function ProjectDetailPage() {
               comments={comments}
               status={commentStatus}
               onResolve={handleResolve}
+              onReply={handleReply}
               isEditor
             />
           </div>

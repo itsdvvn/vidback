@@ -1,6 +1,14 @@
 "use client";
 
-import { useState, useCallback, useEffect, use } from "react";
+import {
+  useState,
+  useCallback,
+  useEffect,
+  use,
+  useOptimistic,
+  useRef,
+  startTransition,
+} from "react";
 import type { Comment } from "@/types";
 import { VideoPlayerProvider } from "@/components/video/VideoPlayerProvider";
 import { VideoPlayer } from "@/components/video/VideoPlayer";
@@ -12,6 +20,9 @@ import { Button } from "@/components/ui/Button";
 import { Film, AlertCircle, RefreshCw } from "lucide-react";
 import { createComment } from "@/lib/actions";
 
+/** Poll for new comments every N ms */
+const POLL_INTERVAL = 10_000;
+
 export default function ClientReviewPage({
   params,
 }: {
@@ -20,15 +31,27 @@ export default function ClientReviewPage({
   const { token } = use(params);
   const [project, setProject] = useState<any>(null);
   const [comments, setComments] = useState<Comment[]>([]);
-  const [loadState, setLoadState] = useState<"loading" | "error" | "ready">("loading");
+  const [loadState, setLoadState] = useState<"loading" | "error" | "ready">(
+    "loading",
+  );
   const [error, setError] = useState("");
 
+  // ─── Optimistic updates ───
+  const [optimisticComments, addOptimisticComment] = useOptimistic(
+    comments,
+    (state, newComment: Comment) => [...state, newComment],
+  );
+
+  // ─── Data fetching ───
   const fetchData = useCallback(async () => {
     setLoadState("loading");
     setError("");
     try {
       const res = await fetch(`/api/public/projects/${token}`);
-      if (!res.ok) throw new Error(res.status === 404 ? "Project not found" : "Failed to load");
+      if (!res.ok)
+        throw new Error(
+          res.status === 404 ? "Project not found" : "Failed to load",
+        );
       const data = await res.json();
       setProject(data.project);
       setComments(data.comments as Comment[]);
@@ -43,10 +66,37 @@ export default function ClientReviewPage({
     fetchData();
   }, [fetchData]);
 
+  // ─── Polling for cross-tab / multi-device sync ───
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  useEffect(() => {
+    if (loadState !== "ready") return;
+
+    pollingRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/public/projects/${token}`);
+        if (res.ok) {
+          const data = await res.json();
+          setComments(data.comments as Comment[]);
+        }
+      } catch {
+        // silent — don't disrupt the user
+      }
+    }, POLL_INTERVAL);
+
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
+  }, [token, loadState]);
+
   const status = comments.length === 0 ? "empty" : "success";
 
+  // ─── Add comment handler (optimistic + server) ───
   const handleAddComment = useCallback(
-    async (data: { authorName: string; content: string; timestamp: number }) => {
+    async (data: {
+      authorName: string;
+      content: string;
+      timestamp: number;
+    }) => {
       const optimistic: Comment = {
         id: Date.now(),
         projectId: project?.id || "",
@@ -59,8 +109,9 @@ export default function ClientReviewPage({
         replies: [],
       };
 
-      // Optimistic update
-      setComments((prev) => [...prev, optimistic]);
+      startTransition(() => {
+        addOptimisticComment(optimistic);
+      });
 
       try {
         const formData = new FormData();
@@ -70,11 +121,11 @@ export default function ClientReviewPage({
         formData.set("timestamp", String(data.timestamp));
         await createComment(formData);
       } catch {
-        // Rollback on error
-        setComments((prev) => prev.filter((c) => c.id !== optimistic.id));
+        // Rollback on error — refetch from server
+        await fetchData();
       }
     },
-    [project?.id],
+    [project?.id, addOptimisticComment, fetchData],
   );
 
   // ─── Loading ───
@@ -98,7 +149,9 @@ export default function ClientReviewPage({
           <AlertCircle className="h-12 w-12 text-red-400" />
           <div>
             <h1 className="text-lg font-semibold text-zinc-900 dark:text-white">
-              {error === "Project not found" ? "Project Not Found" : "Failed to Load"}
+              {error === "Project not found"
+                ? "Project Not Found"
+                : "Failed to Load"}
             </h1>
             <p className="mt-1 text-sm text-zinc-500">
               {error === "Project not found"
@@ -132,25 +185,58 @@ export default function ClientReviewPage({
 
         <div className="mx-auto max-w-5xl px-4 py-4 space-y-4">
           <VideoPlayer
-            src={project?.videoUrl || "https://www.w3schools.com/html/mov_bbb.mp4"}
+            src={
+              project?.videoUrl || "https://www.w3schools.com/html/mov_bbb.mp4"
+            }
             showCommentButton
+            comments={optimisticComments}
           />
           <CommentInput onSubmit={handleAddComment} />
 
           <div className="rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
             <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
-              <h2 className="font-semibold text-sm">Comments ({comments.length})</h2>
+              <h2 className="font-semibold text-sm">
+                Comments ({optimisticComments.length})
+              </h2>
             </div>
-            <CommentList comments={comments} status={status as "loading" | "empty" | "error" | "success"} />
+            <CommentList
+              comments={optimisticComments}
+              status={status as "loading" | "empty" | "error" | "success"}
+            />
           </div>
         </div>
 
         <footer className="flex items-center justify-center gap-6 py-4 text-xs text-zinc-400 dark:text-zinc-500 border-t border-zinc-200 dark:border-zinc-800">
-          <span><kbd className="rounded border border-zinc-300 bg-zinc-100 px-1.5 py-0.5 font-mono text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">Space</kbd> Play/Pause</span>
-          <span><kbd className="rounded border border-zinc-300 bg-zinc-100 px-1.5 py-0.5 font-mono text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">J</kbd> Rewind 10s</span>
-          <span><kbd className="rounded border border-zinc-300 bg-zinc-100 px-1.5 py-0.5 font-mono text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">K</kbd> Pause</span>
-          <span><kbd className="rounded border border-zinc-300 bg-zinc-100 px-1.5 py-0.5 font-mono text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">L</kbd> Forward 10s</span>
-          <span><kbd className="rounded border border-zinc-300 bg-zinc-100 px-1.5 py-0.5 font-mono text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">C</kbd> Add Comment</span>
+          <span>
+            <kbd className="rounded border border-zinc-300 bg-zinc-100 px-1.5 py-0.5 font-mono text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+              Space
+            </kbd>{" "}
+            Play/Pause
+          </span>
+          <span>
+            <kbd className="rounded border border-zinc-300 bg-zinc-100 px-1.5 py-0.5 font-mono text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+              J
+            </kbd>{" "}
+            Rewind 10s
+          </span>
+          <span>
+            <kbd className="rounded border border-zinc-300 bg-zinc-100 px-1.5 py-0.5 font-mono text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+              K
+            </kbd>{" "}
+            Pause
+          </span>
+          <span>
+            <kbd className="rounded border border-zinc-300 bg-zinc-100 px-1.5 py-0.5 font-mono text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+              L
+            </kbd>{" "}
+            Forward 10s
+          </span>
+          <span>
+            <kbd className="rounded border border-zinc-300 bg-zinc-100 px-1.5 py-0.5 font-mono text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+              C
+            </kbd>{" "}
+            Add Comment
+          </span>
         </footer>
       </VideoPlayerProvider>
     </div>

@@ -1,23 +1,49 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { useVideoPlayerState, useVideoPlayerActions } from "./VideoPlayerProvider";
+import {
+  useVideoPlayerState,
+  useVideoPlayerActions,
+} from "./VideoPlayerProvider";
 import { CustomTimeline } from "./CustomTimeline";
 import { PlaybackControls } from "./PlaybackControls";
 import { cn } from "@/lib/utils";
 import { AlertTriangle, Loader } from "lucide-react";
+import type { Comment } from "@/types";
 
 export interface VideoPlayerProps {
   src: string;
   className?: string;
   showCommentButton?: boolean;
+  /** Comments for timeline markers — synced into the player provider */
+  comments?: Comment[];
 }
 
-export function VideoPlayer({ src, className, showCommentButton = false }: VideoPlayerProps) {
+export function VideoPlayer({
+  src,
+  className,
+  showCommentButton = false,
+  comments,
+}: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const { isCommenting, frozenTimestamp } = useVideoPlayerState();
-  const { setDuration, setCurrentTime, setIsPlaying, registerVideoRef } = useVideoPlayerActions();
-  const [status, setStatus] = useState<"loading" | "error" | "ready">("loading");
+  const {
+    setDuration,
+    setCurrentTime,
+    setIsPlaying,
+    registerVideoRef,
+    setComments,
+  } = useVideoPlayerActions();
+
+  // Sync comments into the provider so CustomTimeline shows markers
+  useEffect(() => {
+    if (comments) {
+      setComments(comments);
+    }
+  }, [comments, setComments]);
+  const [status, setStatus] = useState<"loading" | "error" | "ready">(
+    "loading",
+  );
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [aspectClass, setAspectClass] = useState<string>("aspect-video");
 
@@ -92,10 +118,16 @@ export function VideoPlayer({ src, className, showCommentButton = false }: Video
       el.removeEventListener("ended", onEnded);
       el.removeEventListener("error", onError);
     };
-  }, [setDuration, setCurrentTime, setIsPlaying, detectAspectRatio, registerVideoRef]);
+  }, [
+    setDuration,
+    setCurrentTime,
+    setIsPlaying,
+    detectAspectRatio,
+    registerVideoRef,
+  ]);
 
   return (
-    <div className={cn("relative w-full", className)}>
+    <div className={cn("group relative w-full", className)}>
       {/* Loading overlay */}
       {status === "loading" && (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/60 rounded-xl">
@@ -131,15 +163,17 @@ export function VideoPlayer({ src, className, showCommentButton = false }: Video
       {/* Comment mode overlay banner */}
       {isCommenting && (
         <div className="absolute top-3 left-1/2 z-10 -translate-x-1/2 rounded-full bg-indigo-600 px-4 py-1.5 text-sm font-medium text-white shadow-lg">
-          Add Comment — Time:{" "}
-          {frozenTimestamp?.toFixed(1)}s
+          Add Comment — Time: {frozenTimestamp?.toFixed(1)}s
         </div>
       )}
 
       <video
         ref={videoRef}
         src={src}
-        className={cn("w-full rounded-t-xl bg-black object-contain", aspectClass)}
+        className={cn(
+          "w-full rounded-t-xl bg-black object-contain",
+          aspectClass,
+        )}
         preload="metadata"
         playsInline
         controls={false}

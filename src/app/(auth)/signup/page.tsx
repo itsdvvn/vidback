@@ -8,8 +8,9 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
 
-export default function LoginPage() {
+export default function SignUpPage() {
   const router = useRouter();
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -19,26 +20,33 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
 
-    if (!email.trim() || !password.trim()) {
+    if (!name.trim() || !email.trim() || !password.trim()) {
       setError("Please fill in all fields.");
+      return;
+    }
+
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters.");
       return;
     }
 
     setLoading(true);
 
     try {
-      const result = await authClient.signIn.email({
+      const { error: signUpError } = await authClient.signUp.email({
         email: email.trim(),
         password: password.trim(),
+        name: name.trim(),
+        callbackURL: "/dashboard",
       });
 
-      if (result.error) {
-        setError(result.error.message || "Invalid credentials");
+      if (signUpError) {
+        setError(signUpError.message || "Registration failed");
       } else {
         router.push("/dashboard");
       }
     } catch {
-      setError("Authentication failed. Is the server running?");
+      setError("Registration failed. Is the server running?");
     } finally {
       setLoading(false);
     }
@@ -49,10 +57,10 @@ export default function LoginPage() {
       <form onSubmit={handleSubmit} className="space-y-5">
         <div>
           <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">
-            Welcome back
+            Create your account
           </h1>
           <p className="mt-1 text-sm text-zinc-500">
-            Sign in to your editor account.
+            Register as a new editor.
           </p>
         </div>
 
@@ -63,41 +71,53 @@ export default function LoginPage() {
         )}
 
         <Input
+          id="name"
+          label="Name"
+          type="text"
+          placeholder="Your name"
+          value={name}
+          onChange={(e) => {
+            setName(e.target.value);
+            if (error) setError("");
+          }}
+        />
+
+        <Input
           id="email"
           label="Email"
           type="email"
           placeholder="editor@example.com"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) => {
+            setEmail(e.target.value);
+            if (error) setError("");
+          }}
         />
 
-        <div>
-          <Input
-            id="password"
-            label="Password"
-            type="password"
-            placeholder="••••••••"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          <p className="mt-1 text-right text-xs text-zinc-400">
-            <a href="#" className="hover:text-indigo-500 transition-colors">
-              Forgot password?
-            </a>
-          </p>
-        </div>
+        <Input
+          id="password"
+          label="Password"
+          type="password"
+          placeholder="••••••••"
+          value={password}
+          onChange={(e) => {
+            setPassword(e.target.value);
+            if (error) setError("");
+          }}
+          hint="At least 8 characters"
+        />
 
         <Button type="submit" className="w-full" loading={loading}>
-          Sign In
+          Create Account
         </Button>
 
         <p className="text-center text-sm text-zinc-500">
-          Don&apos;t have an account?{" "}
+          Already have an account?{" "}
           <Link
-            href="/signup"
+            href="/login"
             className="font-medium text-indigo-600 hover:text-indigo-500"
           >
-            Sign up
+            Sign in
           </Link>
         </p>
       </form>
