@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect, type FormEvent } from "react";
+import { useState, useEffect, useCallback, type FormEvent } from "react";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
 import {
   useVideoPlayerState,
   useVideoPlayerActions,
 } from "@/components/video/VideoPlayerProvider";
 import { cn } from "@/lib/utils";
+import { NameDropdown, persistName } from "@/components/ui/NameDropdown";
 import { MessageSquarePlus, X } from "lucide-react";
 
 const NAME_STORAGE_KEY = "viback-author-name";
@@ -52,6 +52,11 @@ export function CommentInput({
       // localStorage unavailable (SSR, private browsing, etc.)
     }
   }, [defaultName]);
+
+  // Persist name to the dropdown's name list too
+  const handleNameConfirm = useCallback((name: string) => {
+    persistName(name);
+  }, []);
 
   const timestamp = parentId ? (frozenTimestamp ?? 0) : (frozenTimestamp ?? 0);
 
@@ -135,15 +140,14 @@ export function CommentInput({
       <div className="flex flex-col gap-3">
         {/* Name field — hidden for editor replies (defaultName is set) */}
         {!defaultName && (
-          <Input
-            id="authorName"
-            placeholder="Your name"
+          <NameDropdown
             value={authorName}
-            onChange={(e) => {
-              setAuthorName(e.target.value);
+            onChange={(value) => {
+              setAuthorName(value);
               if (nameError) setNameError("");
             }}
             error={nameError}
+            onConfirm={handleNameConfirm}
             autoFocus={!parentId}
           />
         )}

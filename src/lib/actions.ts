@@ -252,6 +252,33 @@ export async function createComment(formData: FormData) {
   return comment;
 }
 
+// ─── Thumbnail ───
+
+export async function updateProjectThumbnail(
+  projectId: string,
+  thumbnailUrl: string,
+) {
+  const session = await requireAuth();
+
+  // Verify ownership
+  const [project] = await db
+    .select({ editorId: projects.editorId })
+    .from(projects)
+    .where(eq(projects.id, projectId))
+    .limit(1);
+
+  if (!project) throw new Error("Not found");
+  if (project.editorId !== session.user.id) throw new Error("Forbidden");
+
+  await db
+    .update(projects)
+    .set({ thumbnailUrl, updatedAt: new Date() })
+    .where(eq(projects.id, projectId));
+
+  revalidatePath(`/projects/${projectId}`);
+  return { success: true };
+}
+
 // ─── Profile ───
 
 const updateProfileSchema = z.object({

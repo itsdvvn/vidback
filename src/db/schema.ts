@@ -72,6 +72,7 @@ export const projects = pgTable("projects", {
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
   status: text("status").notNull().default("Under Review"),
+  thumbnailUrl: text("thumbnail_url"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -85,6 +86,8 @@ export const comments = pgTable("comments", {
   content: text("content").notNull(),
   timestamp: doublePrecision("timestamp").notNull(),
   isResolved: timestamp("is_resolved"),
-  parentId: integer("parent_id").references((): any => comments.id, { onDelete: "cascade" }),
+  parentId: integer("parent_id").references((): any => comments.id, {
+    onDelete: "cascade",
+  }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

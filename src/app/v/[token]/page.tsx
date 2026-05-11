@@ -19,6 +19,8 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/Button";
 import { Film, AlertCircle, RefreshCw } from "lucide-react";
 import { createComment } from "@/lib/actions";
+import { useVideoPlayerActions } from "@/components/video/VideoPlayerProvider";
+import { ToastProvider, toast } from "@/components/ui/Toast";
 
 /** Poll for new comments every N ms */
 const POLL_INTERVAL = 10_000;
@@ -35,6 +37,9 @@ export default function ClientReviewPage({
     "loading",
   );
   const [error, setError] = useState("");
+
+  // Track previous comment count to detect new comments during polling
+  const prevCommentCountRef = useRef(0);
 
   // ─── Optimistic updates ───
   const [optimisticComments, addOptimisticComment] = useOptimistic(
@@ -55,6 +60,7 @@ export default function ClientReviewPage({
       const data = await res.json();
       setProject(data.project);
       setComments(data.comments as Comment[]);
+      prevCommentCountRef.current = (data.comments as Comment[]).length;
       setLoadState("ready");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load project");
@@ -76,7 +82,13 @@ export default function ClientReviewPage({
         const res = await fetch(`/api/public/projects/${token}`);
         if (res.ok) {
           const data = await res.json();
-          setComments(data.comments as Comment[]);
+          const newComments = data.comments as Comment[];
+          // Show info toast when new comments are detected
+          if (newComments.length > prevCommentCountRef.current) {
+            toast("New feedback arrived!");
+          }
+          prevCommentCountRef.current = newComments.length;
+          setComments(newComments);
         }
       } catch {
         // silent — don't disrupt the user
@@ -120,6 +132,7 @@ export default function ClientReviewPage({
         formData.set("content", data.content);
         formData.set("timestamp", String(data.timestamp));
         await createComment(formData);
+        toast("Comment added! ✓", "success");
       } catch {
         // Rollback on error — refetch from server
         await fetchData();
@@ -168,77 +181,112 @@ export default function ClientReviewPage({
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-white">
-      <VideoPlayerProvider>
-        <header className="flex items-center justify-between px-4 py-3 border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
-          <div className="flex items-center gap-3">
-            <Film className="h-5 w-5 text-indigo-500" />
-            <div>
-              <h1 className="text-sm font-semibold">{project?.name}</h1>
-              <p className="text-xs text-zinc-400 dark:text-zinc-500">
-                Leave time-coded feedback — no login required.
-              </p>
+    <ToastProvider>
+      <div className="min-h-screen bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-white">
+        <VideoPlayerProvider>
+          <header className="flex items-center justify-between px-4 py-3 border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+            <div className="flex items-center gap-3">
+              <Film className="h-5 w-5 text-indigo-500" />
+              <div>
+                <h1 className="text-sm font-semibold">{project?.name}</h1>
+                <p className="text-xs text-zinc-400 dark:text-zinc-500">
+                  Leave time-coded feedback — no login required.
+                </p>
+              </div>
             </div>
-          </div>
-          <ThemeToggle />
-        </header>
+            <ThemeToggle />
+          </header>
 
-        <div className="mx-auto max-w-5xl px-4 py-4 space-y-4">
-          <VideoPlayer
-            src={
-              project?.videoUrl || "https://www.w3schools.com/html/mov_bbb.mp4"
-            }
-            showCommentButton
+          <ReviewVideoSection
+            project={project}
             comments={optimisticComments}
+            status={status as "loading" | "empty" | "error" | "success"}
+            onAddComment={handleAddComment}
           />
-          <CommentInput onSubmit={handleAddComment} />
 
-          <div className="rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
-            <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
-              <h2 className="font-semibold text-sm">
-                Comments ({optimisticComments.length})
-              </h2>
-            </div>
-            <CommentList
-              comments={optimisticComments}
-              status={status as "loading" | "empty" | "error" | "success"}
-            />
-          </div>
+          <footer className="flex items-center justify-center gap-6 py-4 text-xs text-zinc-400 dark:text-zinc-500 border-t border-zinc-200 dark:border-zinc-800">
+            <span>
+              <kbd className="rounded border border-zinc-300 bg-zinc-100 px-1.5 py-0.5 font-mono text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                Space
+              </kbd>{" "}
+              Play/Pause
+            </span>
+            <span>
+              <kbd className="rounded border border-zinc-300 bg-zinc-100 px-1.5 py-0.5 font-mono text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                J
+              </kbd>{" "}
+              Rewind 10s
+            </span>
+            <span>
+              <kbd className="rounded border border-zinc-300 bg-zinc-100 px-1.5 py-0.5 font-mono text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                K
+              </kbd>{" "}
+              Pause
+            </span>
+            <span>
+              <kbd className="rounded border border-zinc-300 bg-zinc-100 px-1.5 py-0.5 font-mono text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                L
+              </kbd>{" "}
+              Forward 10s
+            </span>
+            <span>
+              <kbd className="rounded border border-zinc-300 bg-zinc-100 px-1.5 py-0.5 font-mono text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                C
+              </kbd>{" "}
+              Add Comment
+            </span>
+          </footer>
+        </VideoPlayerProvider>
+      </div>
+    </ToastProvider>
+  );
+}
+
+/** Inner component rendered inside VideoPlayerProvider so it can access seek */
+function ReviewVideoSection({
+  project,
+  comments,
+  status,
+  onAddComment,
+}: {
+  project: any;
+  comments: Comment[];
+  status: "loading" | "empty" | "error" | "success";
+  onAddComment: (data: {
+    authorName: string;
+    content: string;
+    timestamp: number;
+  }) => Promise<void>;
+}) {
+  const { seek } = useVideoPlayerActions();
+  const handleSeekToComment = useCallback(
+    (timestamp: number) => {
+      seek(timestamp);
+    },
+    [seek],
+  );
+
+  return (
+    <div className="mx-auto max-w-5xl px-4 py-4 space-y-4">
+      <VideoPlayer
+        src={project?.videoUrl || "https://www.w3schools.com/html/mov_bbb.mp4"}
+        showCommentButton
+        comments={comments}
+      />
+      <CommentInput onSubmit={onAddComment} />
+
+      <div className="rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
+          <h2 className="font-semibold text-sm">
+            Comments ({comments.length})
+          </h2>
         </div>
-
-        <footer className="flex items-center justify-center gap-6 py-4 text-xs text-zinc-400 dark:text-zinc-500 border-t border-zinc-200 dark:border-zinc-800">
-          <span>
-            <kbd className="rounded border border-zinc-300 bg-zinc-100 px-1.5 py-0.5 font-mono text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
-              Space
-            </kbd>{" "}
-            Play/Pause
-          </span>
-          <span>
-            <kbd className="rounded border border-zinc-300 bg-zinc-100 px-1.5 py-0.5 font-mono text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
-              J
-            </kbd>{" "}
-            Rewind 10s
-          </span>
-          <span>
-            <kbd className="rounded border border-zinc-300 bg-zinc-100 px-1.5 py-0.5 font-mono text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
-              K
-            </kbd>{" "}
-            Pause
-          </span>
-          <span>
-            <kbd className="rounded border border-zinc-300 bg-zinc-100 px-1.5 py-0.5 font-mono text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
-              L
-            </kbd>{" "}
-            Forward 10s
-          </span>
-          <span>
-            <kbd className="rounded border border-zinc-300 bg-zinc-100 px-1.5 py-0.5 font-mono text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
-              C
-            </kbd>{" "}
-            Add Comment
-          </span>
-        </footer>
-      </VideoPlayerProvider>
+        <CommentList
+          comments={comments}
+          status={status}
+          onSeek={handleSeekToComment}
+        />
+      </div>
     </div>
   );
 }
