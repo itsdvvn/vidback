@@ -8,6 +8,7 @@ import { z } from "zod";
 import { nanoid } from "nanoid";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { r2, R2_BUCKET, DeleteObjectCommand } from "@/lib/r2";
 
 // ─── Helpers ───
 
@@ -139,9 +140,12 @@ export async function updateProjectStatus(projectId: string, status: string) {
 export async function deleteProject(projectId: string) {
   const session = await requireAuth();
 
-  // Verify ownership
   const [project] = await db
-    .select({ editorId: projects.editorId })
+    .select({
+      editorId: projects.editorId,
+      videoUrl: projects.videoUrl,
+      thumbnailUrl: projects.thumbnailUrl,
+    })
     .from(projects)
     .where(eq(projects.id, projectId))
     .limit(1);
@@ -149,8 +153,36 @@ export async function deleteProject(projectId: string) {
   if (!project) throw new Error("Not found");
   if (project.editorId !== session.user.id) throw new Error("Forbidden");
 
+  // Delete associated R2 media (best-effort)
+  const mediaUrls = [project.videoUrl, project.thumbnailUrl].filter(
+    Boolean,
+  ) as string[];
+  for (const url of mediaUrls) {
+    try {
+      const key = extractR2Key(url);
+      if (key)
+        await r2.send(new DeleteObjectCommand({ Bucket: R2_BUCKET, Key: key }));
+    } catch {
+      /* best-effort */
+    }
+  }
+
   await db.delete(projects).where(eq(projects.id, projectId));
   revalidatePath("/dashboard");
+}
+
+/** Extract the R2 object key from a presigned or public URL */
+function extractR2Key(url: string): string | null {
+  try {
+    const u = new URL(url);
+    const parts = u.pathname.split("/").filter(Boolean);
+    if (parts.length >= 2 && parts[0] === R2_BUCKET)
+      return parts.slice(1).join("/");
+    if (parts.length >= 1) return parts.join("/");
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 // ─── Comments (Editor) ───
