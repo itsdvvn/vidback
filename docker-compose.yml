@@ -3,6 +3,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_BETTER_AUTH_URL=https://vidback.yudhisetiawan.my.id
     image: ghcr.io/itsdvvn/vidback:latest
     restart: unless-stopped
     ports:
