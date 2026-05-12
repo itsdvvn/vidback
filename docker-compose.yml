@@ -1,0 +1,50 @@
+services:
+  vidback:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ghcr.io/itsdvvn/vidback:latest
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    env_file:
+      - .env.production
+    environment:
+      - DATABASE_URL=postgresql://vidback:vidback_secret_2026@vidback-db:5432/vidback
+    depends_on:
+      vidback-db:
+        condition: service_healthy
+    networks:
+      - coolify
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.vidback.rule=Host(`vidback.yourdomain.com`)"
+      - "traefik.http.routers.vidback.entrypoints=websecure"
+      - "traefik.http.services.vidback.loadbalancer.server.port=3000"
+
+  vidback-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    volumes:
+      - vidback-db-data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=vidback
+      - POSTGRES_PASSWORD=vidback_secret_2026
+      - POSTGRES_DB=vidback
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vidback"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - coolify
+
+volumes:
+  vidback-db-data:
+
+networks:
+  coolify:
+    external: true
+  traefik:
+    external: true
