@@ -38,15 +38,13 @@ export const r2 = getR2();
 
 export const R2_BUCKET = process.env.R2_BUCKET || "vidback";
 
-/** Ensure the bucket exists and has CORS configured — call once at startup */
+/** Ensure the bucket exists and CORS is configured */
 export async function ensureBucket(): Promise<void> {
-  // The bucket should already exist from local setup.
-  // If it doesn't, this will silently skip CORS configuration.
-  // (Pushing these commands on every cold-start causes auth header issues on Vercel.)
   try {
     await r2.send(new CreateBucketCommand({ Bucket: R2_BUCKET }));
+    console.log(`[R2] Bucket "${R2_BUCKET}" ready`);
   } catch {
-    // Bucket likely already exists — that's fine
+    /* exists */
   }
 
   try {
@@ -66,8 +64,9 @@ export async function ensureBucket(): Promise<void> {
         },
       }),
     );
-  } catch {
-    // CORS is best-effort — bucket may already have it configured
+    console.log(`[R2] CORS configured for "${R2_BUCKET}"`);
+  } catch (e: any) {
+    console.error(`[R2] CORS configuration failed: ${e.message}`);
   }
 }
 
