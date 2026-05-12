@@ -14,7 +14,6 @@ export interface ProjectFormData {
 export interface ProjectFormProps {
   onSubmit: (data: ProjectFormData) => void;
   uploading?: boolean;
-  uploadProgress?: number;
 }
 
 export function ProjectForm({ onSubmit, uploading = false }: ProjectFormProps) {
@@ -64,41 +63,47 @@ export function ProjectForm({ onSubmit, uploading = false }: ProjectFormProps) {
 
     if (!videoFile) return;
 
-    // Server-side upload: browser → Vercel → R2 (no CORS issues)
+    // Step 1: Ask server for presigned URLs (tiny JSON payload, no 413)
     setLocalUploading(true);
     setLocalProgress(0);
 
     try {
-      const body = new FormData();
-      body.set("file", videoFile);
-      body.set("filename", videoFile.name);
-      body.set("contentType", videoFile.type || "video/mp4");
+      const uploadRes = await fetch("/api/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          filename: videoFile.name,
+          contentType: videoFile.type || "video/mp4",
+        }),
+      });
+      if (!uploadRes.ok) {
+        const errData = await uploadRes.json();
+        throw new Error(errData.error || "Failed to get upload URL");
+      }
 
+      const { presignedPutUrl, presignedGetUrl } = await uploadRes.json();
+
+      // Step 2: Upload file directly to R2 via presigned URL (bypasses Vercel's 4.5MB limit)
       const xhr = new XMLHttpRequest();
-      const data = await new Promise<any>((resolve, reject) => {
+      await new Promise<void>((resolve, reject) => {
         xhr.upload.addEventListener("progress", (e) => {
           if (e.lengthComputable)
             setLocalProgress(Math.round((e.loaded / e.total) * 100));
         });
         xhr.addEventListener("load", () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            resolve(JSON.parse(xhr.responseText));
-          } else {
-            try {
-              const err = JSON.parse(xhr.responseText);
-              reject(new Error(err.error || `HTTP ${xhr.status}`));
-            } catch {
-              reject(new Error(`HTTP ${xhr.status}`));
-            }
-          }
+          if (xhr.status >= 200 && xhr.status < 300) resolve();
+          else reject(new Error(`HTTP ${xhr.status}`));
         });
-        xhr.addEventListener("error", () => reject(new Error("Network error")));
-        xhr.addEventListener("timeout", () => reject(new Error("Timeout")));
-        xhr.open("POST", "/api/upload");
-        xhr.send(body);
+        xhr.addEventListener("error", () =>
+          reject(new Error("CORS or network error — is R2 bucket set up?")),
+        );
+        xhr.open("PUT", presignedPutUrl);
+        xhr.setRequestHeader("Content-Type", videoFile.type || "video/mp4");
+        xhr.send(videoFile);
       });
 
-      onSubmit({ name: name.trim(), videoUrl: data.videoUrl });
+      // Step 3: Submit with the R2 playback URL
+      onSubmit({ name: name.trim(), videoUrl: presignedGetUrl });
     } catch (err) {
       setUrlError(err instanceof Error ? err.message : "Upload failed");
     } finally {
