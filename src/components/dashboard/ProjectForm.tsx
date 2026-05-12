@@ -17,11 +17,7 @@ export interface ProjectFormProps {
   uploadProgress?: number;
 }
 
-export function ProjectForm({
-  onSubmit,
-  uploading = false,
-  uploadProgress = 0,
-}: ProjectFormProps) {
+export function ProjectForm({ onSubmit, uploading = false }: ProjectFormProps) {
   const [name, setName] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
   const [useUrl, setUseUrl] = useState(true);
@@ -29,7 +25,6 @@ export function ProjectForm({
   const [nameError, setNameError] = useState("");
   const [urlError, setUrlError] = useState("");
 
-  // ─── Upload to R2, then submit ───
   const [localUploading, setLocalUploading] = useState(false);
   const [localProgress, setLocalProgress] = useState(0);
 
@@ -60,78 +55,50 @@ export function ProjectForm({
       setUrlError("Please select a video file.");
       valid = false;
     }
-
     if (!valid) return;
 
-    // URL mode — submit directly
     if (useUrl) {
       onSubmit({ name: name.trim(), videoUrl: videoUrl.trim() });
       return;
     }
 
-    // Upload mode — upload to R2 first, then submit
     if (!videoFile) return;
 
+    // Server-side upload: browser → Vercel → R2 (no CORS issues)
     setLocalUploading(true);
     setLocalProgress(0);
 
     try {
-      // 1. Get a presigned URL from our API
-      const uploadRes = await fetch("/api/upload", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          filename: videoFile.name,
-          contentType: videoFile.type || "video/mp4",
-        }),
-      });
+      const body = new FormData();
+      body.set("file", videoFile);
+      body.set("filename", videoFile.name);
+      body.set("contentType", videoFile.type || "video/mp4");
 
-      if (!uploadRes.ok) {
-        const errData = await uploadRes.json();
-        throw new Error(errData.error || "Failed to get upload URL");
-      }
-
-      const { presignedPutUrl, presignedGetUrl } = await uploadRes.json();
-
-      // 2. Upload the file directly to R2 via the presigned PUT URL
       const xhr = new XMLHttpRequest();
-      await new Promise<void>((resolve, reject) => {
-        xhr.upload.addEventListener("progress", (event) => {
-          if (event.lengthComputable) {
-            const pct = Math.round((event.loaded / event.total) * 100);
-            setLocalProgress(pct);
-          }
+      const data = await new Promise<any>((resolve, reject) => {
+        xhr.upload.addEventListener("progress", (e) => {
+          if (e.lengthComputable)
+            setLocalProgress(Math.round((e.loaded / e.total) * 100));
         });
-
         xhr.addEventListener("load", () => {
           if (xhr.status >= 200 && xhr.status < 300) {
-            resolve();
-          } else if (xhr.status === 403) {
-            reject(
-              new Error(
-                "Upload rejected — R2 presigned URL expired or invalid",
-              ),
-            );
+            resolve(JSON.parse(xhr.responseText));
           } else {
-            reject(new Error(`Upload failed (HTTP ${xhr.status})`));
+            try {
+              const err = JSON.parse(xhr.responseText);
+              reject(new Error(err.error || `HTTP ${xhr.status}`));
+            } catch {
+              reject(new Error(`HTTP ${xhr.status}`));
+            }
           }
         });
-
-        xhr.addEventListener("error", () =>
-          reject(
-            new Error("Network error — browser blocked the upload (CORS?)"),
-          ),
-        );
-        xhr.addEventListener("timeout", () =>
-          reject(new Error("Upload timed out")),
-        );
-        xhr.open("PUT", presignedPutUrl);
-        xhr.setRequestHeader("Content-Type", videoFile.type || "video/mp4");
-        xhr.send(videoFile);
+        xhr.addEventListener("error", () => reject(new Error("Network error")));
+        xhr.addEventListener("timeout", () => reject(new Error("Timeout")));
+        xhr.open("POST", "/api/upload");
+        xhr.send(body);
       });
 
-      // 3. Submit with the presigned GET URL (valid 7 days)
-      onSubmit({ name: name.trim(), videoUrl: presignedGetUrl });
+      onSubmit({ name: name.trim(), videoUrl: data.videoUrl });
     } catch (err) {
       setUrlError(err instanceof Error ? err.message : "Upload failed");
     } finally {
@@ -141,7 +108,7 @@ export function ProjectForm({
   };
 
   const isUploading = uploading || localUploading;
-  const progress = localProgress > 0 ? localProgress : uploadProgress;
+  const progress = localProgress;
 
   return (
     <form onSubmit={handleSubmit}>
@@ -168,7 +135,6 @@ export function ProjectForm({
             error={nameError}
           />
 
-          {/* Toggle: URL vs Upload */}
           <div>
             <label className="text-sm font-medium text-foreground">
               Video Source
@@ -177,26 +143,16 @@ export function ProjectForm({
               <button
                 type="button"
                 onClick={() => setUseUrl(true)}
-                className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
-                  useUrl
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-border text-muted-foreground hover:bg-muted"
-                }`}
+                className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${useUrl ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:bg-muted"}`}
               >
-                <Link2 className="h-4 w-4" />
-                URL
+                <Link2 className="h-4 w-4" /> URL
               </button>
               <button
                 type="button"
                 onClick={() => setUseUrl(false)}
-                className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
-                  !useUrl
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-border text-muted-foreground hover:bg-muted"
-                }`}
+                className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${!useUrl ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:bg-muted"}`}
               >
-                <Upload className="h-4 w-4" />
-                Upload File
+                <Upload className="h-4 w-4" /> Upload File
               </button>
             </div>
           </div>
@@ -253,7 +209,7 @@ export function ProjectForm({
                 </label>
               </div>
               {urlError && !useUrl && (
-                <p className="mt-1.5 text-sm text-red-600">{urlError}</p>
+                <p className="mt-1.5 text-sm text-destructive">{urlError}</p>
               )}
             </div>
           )}
@@ -262,9 +218,7 @@ export function ProjectForm({
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">
-                  {localUploading
-                    ? "Uploading to Cloudflare R2…"
-                    : "Creating project…"}
+                  Uploading to Cloudflare R2…
                 </span>
                 <span className="font-medium text-foreground">{progress}%</span>
               </div>

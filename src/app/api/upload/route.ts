@@ -15,7 +15,6 @@ import { nanoid } from "nanoid";
 const GET_URL_EXPIRY = 60 * 60 * 24 * 7; // 7 days in seconds
 
 export async function POST(request: Request) {
-  // Require auth (only editors can upload)
   const session = await auth.api.getSession({
     headers: await headers(),
   });
@@ -23,56 +22,54 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  const { filename, contentType } = await request.json();
-
-  if (!filename || !contentType) {
-    return NextResponse.json(
-      { error: "filename and contentType are required" },
-      { status: 400 },
-    );
-  }
-
-  // Sanitize the filename and create a unique key
-  const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, "_");
-  const key = `uploads/${session.user.id}/${nanoid(8)}-${safeName}`;
-
   try {
-    // Ensure bucket exists and CORS is configured (fetch handler = R2 compatible)
+    // Ensure bucket exists + CORS is set (server-side, no browser CORS issues)
     await ensureBucket();
 
-    // Presigned URL for uploading (10 min)
-    const presignedPutUrl = await getSignedUrl(
-      r2,
+    // Accept the file as multipart/form-data
+    const formData = await request.formData();
+    const file = formData.get("file") as File | null;
+    const filename =
+      (formData.get("filename") as string) || file?.name || "video.mp4";
+    const contentType =
+      (formData.get("contentType") as string) || file?.type || "video/mp4";
+
+    if (!file) {
+      return NextResponse.json(
+        {
+          error: "No file provided. Send the file as FormData with key 'file'.",
+        },
+        { status: 400 },
+      );
+    }
+
+    // Sanitize filename and create a unique R2 key
+    const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const key = `uploads/${session.user.id}/${nanoid(8)}-${safeName}`;
+
+    // Upload the file buffer directly to R2 (server-side, no CORS needed)
+    const fileBuffer = Buffer.from(await file.arrayBuffer());
+    await r2.send(
       new PutObjectCommand({
         Bucket: R2_BUCKET,
         Key: key,
+        Body: fileBuffer,
         ContentType: contentType,
       }),
-      {
-        expiresIn: 600,
-        signableHeaders: new Set(["content-type"]),
-      },
     );
 
-    // Presigned URL for playback (7 days) — used as the videoUrl
-    const presignedGetUrl = await getSignedUrl(
+    // Generate a presigned GET URL for playback (7 days)
+    const videoUrl = await getSignedUrl(
       r2,
-      new GetObjectCommand({
-        Bucket: R2_BUCKET,
-        Key: key,
-      }),
+      new GetObjectCommand({ Bucket: R2_BUCKET, Key: key }),
       { expiresIn: GET_URL_EXPIRY },
     );
 
-    return NextResponse.json({
-      presignedPutUrl,
-      presignedGetUrl,
-      key,
-    });
+    return NextResponse.json({ videoUrl, key });
   } catch (err) {
-    console.error("R2 upload error:", err);
+    console.error("[upload] Server-side upload error:", err);
     return NextResponse.json(
-      { error: "Failed to generate upload URL" },
+      { error: err instanceof Error ? err.message : "Upload failed" },
       { status: 500 },
     );
   }
