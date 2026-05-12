@@ -8,9 +8,9 @@ services:
     ports:
       - "3001:3000"
     env_file:
-      - .env.production
+      - .env
     environment:
-      - DATABASE_URL=postgresql://vidback:vidback_secret_2026@vidback-db:5432/vidback
+      - DATABASE_URL=postgresql://vidback:${DB_PASSWORD:-vidback_secret_2026}@vidback-db:5432/vidback
     depends_on:
       vidback-db:
         condition: service_healthy
@@ -30,7 +30,7 @@ services:
       - vidback-db-data:/var/lib/postgresql/data
     environment:
       - POSTGRES_USER=vidback
-      - POSTGRES_PASSWORD=vidback_secret_2026
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-vidback_secret_2026}
       - POSTGRES_DB=vidback
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U vidback"]
