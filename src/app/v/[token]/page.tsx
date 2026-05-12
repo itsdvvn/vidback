@@ -20,7 +20,6 @@ import { Button } from "@/components/ui/Button";
 import { Film, AlertCircle, RefreshCw } from "lucide-react";
 import { createComment } from "@/lib/actions";
 import { useVideoPlayerActions } from "@/components/video/VideoPlayerProvider";
-import { ToastProvider, toast } from "@/components/ui/Toast";
 import {
   ClientIdentityModal,
   getCurrentClient,
@@ -105,9 +104,9 @@ export default function ClientReviewPage({
         if (res.ok) {
           const data = await res.json();
           const newComments = data.comments as Comment[];
-          // Show info toast when new comments are detected
+          // Track new comment count silently
           if (newComments.length > prevCommentCountRef.current) {
-            toast("New feedback arrived!");
+            prevCommentCountRef.current = newComments.length;
           }
           prevCommentCountRef.current = newComments.length;
           setComments(newComments);
@@ -154,7 +153,6 @@ export default function ClientReviewPage({
         formData.set("content", data.content);
         formData.set("timestamp", String(data.timestamp));
         await createComment(formData);
-        toast("Comment added! ✓", "success");
       } catch {
         // Rollback on error — refetch from server
         await fetchData();
@@ -203,68 +201,66 @@ export default function ClientReviewPage({
   }
 
   return (
-    <ToastProvider>
-      <div className="min-h-screen bg-background text-foreground">
-        <VideoPlayerProvider>
-          <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-card">
-            <div className="flex items-center gap-3">
-              <Film className="h-5 w-5 text-primary" />
-              <div>
-                <h1 className="text-sm font-semibold">{project?.name}</h1>
-                <p className="text-xs text-muted-foreground/70">
-                  Leave time-coded feedback — no login required.
-                </p>
-              </div>
+    <div className="min-h-screen bg-background text-foreground">
+      <VideoPlayerProvider>
+        <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-card">
+          <div className="flex items-center gap-3">
+            <Film className="h-5 w-5 text-primary" />
+            <div>
+              <h1 className="text-sm font-semibold">{project?.name}</h1>
+              <p className="text-xs text-muted-foreground/70">
+                Leave time-coded feedback — no login required.
+              </p>
             </div>
-            <ThemeToggle />
-          </header>
+          </div>
+          <ThemeToggle />
+        </header>
 
-          <ReviewVideoSection
-            project={project}
-            comments={optimisticComments}
-            status={status as "loading" | "empty" | "error" | "success"}
-            onAddComment={handleAddComment}
-            clientName={clientName}
-          />
+        <ReviewVideoSection
+          project={project}
+          comments={optimisticComments}
+          status={status as "loading" | "empty" | "error" | "success"}
+          onAddComment={handleAddComment}
+          clientName={clientName}
+        />
 
-          <footer className="flex items-center justify-center gap-6 py-4 text-xs text-muted-foreground/70 border-t border-border">
-            <span>
-              <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-muted-foreground">
-                Space
-              </kbd>{" "}
-              Play/Pause
-            </span>
-            <span>
-              <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-muted-foreground">
-                J
-              </kbd>{" "}
-              Rewind 10s
-            </span>
-            <span>
-              <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-muted-foreground">
-                K
-              </kbd>{" "}
-              Pause
-            </span>
-            <span>
-              <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-muted-foreground">
-                L
-              </kbd>{" "}
-              Forward 10s
-            </span>
-            <span>
-              <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-muted-foreground">
-                C
-              </kbd>{" "}
-              Add Comment
-            </span>
-          </footer>
-        </VideoPlayerProvider>
-      </div>
+        <footer className="flex flex-wrap items-center justify-center gap-3 py-4 px-4 text-xs text-muted-foreground/70 border-t border-border">
+          <span>
+            <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-muted-foreground">
+              Space
+            </kbd>{" "}
+            Play/Pause
+          </span>
+          <span>
+            <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-muted-foreground">
+              J
+            </kbd>{" "}
+            Rewind 10s
+          </span>
+          <span>
+            <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-muted-foreground">
+              K
+            </kbd>{" "}
+            Pause
+          </span>
+          <span>
+            <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-muted-foreground">
+              L
+            </kbd>{" "}
+            Forward 10s
+          </span>
+          <span>
+            <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-muted-foreground">
+              C
+            </kbd>{" "}
+            Add Comment
+          </span>
+        </footer>
+      </VideoPlayerProvider>
       {showIdentityModal && (
         <ClientIdentityModal onComplete={handleIdentityComplete} />
       )}
-    </ToastProvider>
+    </div>
   );
 }
 
