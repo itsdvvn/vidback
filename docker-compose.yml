@@ -19,8 +19,9 @@ services:
       - proxy
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.vidback.rule=Host(`vidback.yourdomain.com`)"
+      - "traefik.http.routers.vidback.rule=Host(`vidback.yudhisetiawan.my.id`)"
       - "traefik.http.routers.vidback.entrypoints=websecure"
+      - "traefik.http.routers.vidback.tls.certresolver=myresolver"
       - "traefik.http.services.vidback.loadbalancer.server.port=3000"
 
   vidback-db:
