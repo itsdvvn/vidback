@@ -6,6 +6,7 @@ import {
   PutBucketCorsCommand,
   DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
+import { FetchHttpHandler } from "@smithy/fetch-http-handler";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 let _r2: S3Client | null = null;
@@ -26,6 +27,7 @@ function getR2() {
       region: "auto",
       endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
       credentials: { accessKeyId, secretAccessKey },
+      requestHandler: new FetchHttpHandler(),
     });
   }
   return _r2;

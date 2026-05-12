@@ -5,6 +5,7 @@ import {
   PutObjectCommand,
   GetObjectCommand,
   getSignedUrl,
+  ensureBucket,
 } from "@/lib/r2";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
@@ -36,6 +37,9 @@ export async function POST(request: Request) {
   const key = `uploads/${session.user.id}/${nanoid(8)}-${safeName}`;
 
   try {
+    // Ensure bucket exists and CORS is configured (fetch handler = R2 compatible)
+    await ensureBucket();
+
     // Presigned URL for uploading (10 min)
     const presignedPutUrl = await getSignedUrl(
       r2,
