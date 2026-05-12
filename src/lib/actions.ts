@@ -87,17 +87,102 @@ export async function getProjectWithCounts(projectId: string) {
   };
 }
 
+const ADMIN_EMAIL = "swahyuinfo@gmail.com";
+const MAX_USER_STORAGE = 500 * 1024 * 1024; // 500 MB
+const MAX_VIDEOS_PER_USER = 3;
+const MAX_USERS = 10;
+
+/** Check if an email is the admin */
+export async function isAdmin(email: string): Promise<boolean> {
+  return email === ADMIN_EMAIL;
+}
+
+/** Get storage usage for the current user */
+export async function getStorageUsage(): Promise<{
+  usedBytes: number;
+  limitBytes: number;
+  usedVideos: number;
+  maxVideos: number;
+}> {
+  const session = await requireAuth();
+
+  const userProjects = await db
+    .select()
+    .from(projects)
+    .where(eq(projects.editorId, session.user.id));
+
+  const usedBytes = userProjects.reduce(
+    (acc, p) => acc + (p.storageBytes || 0),
+    0,
+  );
+  const usedVideos = userProjects.length;
+  const limitBytes =
+    session.user.email === ADMIN_EMAIL ? Infinity : MAX_USER_STORAGE;
+  const maxVideos =
+    session.user.email === ADMIN_EMAIL ? Infinity : MAX_VIDEOS_PER_USER;
+
+  return { usedBytes, limitBytes, usedVideos, maxVideos };
+}
+
+/** Get total user count (for landing page stats) */
+export async function getUserCount(): Promise<{
+  current: number;
+  limit: number;
+}> {
+  const [result] = await db.select({ count: count() }).from(user);
+  return { current: result?.count ?? 0, limit: MAX_USERS };
+}
+
 const createProjectSchema = z.object({
   name: z.string().min(1, "Project name is required"),
   videoUrl: z.string().url("Must be a valid URL"),
+  storageBytes: z.coerce.number().min(0).default(0),
 });
 
 export async function createProject(formData: FormData) {
   const session = await requireAuth();
 
+  // 1. Check global user limit (non-admin only)
+  if (session.user.email !== ADMIN_EMAIL) {
+    const [userCount] = await db.select({ count: count() }).from(user);
+    if ((userCount?.count ?? 0) >= MAX_USERS) {
+      throw new Error("Beta is full! All " + MAX_USERS + " spots are taken.");
+    }
+
+    // 2. Check per-user video and storage limits
+    const existingProjects = await db
+      .select({ id: projects.id, storageBytes: projects.storageBytes })
+      .from(projects)
+      .where(eq(projects.editorId, session.user.id));
+
+    if (existingProjects.length >= MAX_VIDEOS_PER_USER) {
+      throw new Error(
+        "You have reached the limit of " +
+          MAX_VIDEOS_PER_USER +
+          " projects. Contact the admin to upgrade.",
+      );
+    }
+
+    // 3. Check per-user storage limit
+    const used = existingProjects.reduce(
+      (acc, p) => acc + (p.storageBytes || 0),
+      0,
+    );
+    const newFileSize = Number(formData.get("storageBytes")) || 0;
+
+    if (used + newFileSize > MAX_USER_STORAGE) {
+      const usedMB = (used / (1024 * 1024)).toFixed(1);
+      const limitMB = (MAX_USER_STORAGE / (1024 * 1024)).toFixed(0);
+      throw new Error(
+        `Storage limit exceeded! You have used ${usedMB} MB of ${limitMB} MB.`,
+      );
+    }
+  }
+
   const parsed = createProjectSchema.parse({
     name: formData.get("name"),
     videoUrl: formData.get("videoUrl"),
+    storageBytes: formData.get("storageBytes"),
   });
 
   const shareToken = `${nanoid(4)}-${nanoid(4)}-${nanoid(4)}`;
@@ -109,6 +194,7 @@ export async function createProject(formData: FormData) {
       videoUrl: parsed.videoUrl,
       shareToken,
       editorId: session.user.id,
+      storageBytes: parsed.storageBytes,
     })
     .returning();
 

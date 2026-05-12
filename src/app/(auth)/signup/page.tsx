@@ -30,6 +30,18 @@ export default function SignUpPage() {
       return;
     }
 
+    // Check beta capacity
+    try {
+      const statsRes = await fetch("/api/beta/stats");
+      const stats = await statsRes.json();
+      if (stats.current >= stats.limit) {
+        setError("Beta is full! All 10 spots are taken.");
+        return;
+      }
+    } catch {
+      // If stats endpoint fails, proceed anyway
+    }
+
     setLoading(true);
 
     try {

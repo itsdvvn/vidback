@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { StorageBar } from "@/components/dashboard/StorageBar";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -24,6 +25,22 @@ const navItems = [
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+
+  const [storage, setStorage] = useState<{
+    usedBytes: number;
+    limitBytes: number;
+    usedVideos: number;
+    maxVideos: number;
+  } | null>(null);
+
+  useEffect(() => {
+    fetch("/api/beta/storage")
+      .then((res) => res.json())
+      .then((data) => setStorage(data))
+      .catch(() => {
+        /* ignore */
+      });
+  }, []);
 
   return (
     <div className="flex min-h-screen">
@@ -61,6 +78,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               );
             })}
           </nav>
+
+          {storage && (
+            <StorageBar
+              usedBytes={storage.usedBytes}
+              limitBytes={storage.limitBytes}
+              usedVideos={storage.usedVideos}
+              maxVideos={storage.maxVideos}
+            />
+          )}
 
           <div className="border-t border-border p-3 flex items-center justify-between">
             <Button

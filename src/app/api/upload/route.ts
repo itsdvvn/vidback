@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  const { filename, contentType } = await request.json();
+  const { filename, contentType, fileSize } = await request.json();
   if (!filename || !contentType) {
     return NextResponse.json(
       { error: "filename and contentType are required" },
@@ -51,7 +51,12 @@ export async function POST(request: Request) {
       { expiresIn: GET_URL_EXPIRY },
     );
 
-    return NextResponse.json({ presignedPutUrl, presignedGetUrl, key });
+    return NextResponse.json({
+      presignedPutUrl,
+      presignedGetUrl,
+      key,
+      fileSize,
+    });
   } catch (err) {
     console.error("[upload] Error:", err);
     return NextResponse.json(

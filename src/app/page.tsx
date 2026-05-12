@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { BetaCounter } from "@/components/ui/BetaCounter";
 import {
   Film,
   MessageSquare,
@@ -286,6 +287,21 @@ export default function Home() {
                   </p>
                 </div>
               ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ─── Beta Counter ─── */}
+        <section className="border-b border-border py-12 sm:py-16">
+          <div className="mx-auto max-w-3xl px-4 text-center">
+            <div className="rounded-2xl border border-border bg-card px-8 py-10 shadow-sm">
+              <h3 className="text-lg font-semibold text-foreground">
+                Limited Beta
+              </h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Join early and shape the product
+              </p>
+              <BetaCounter />
             </div>
           </div>
         </section>

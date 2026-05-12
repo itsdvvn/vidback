@@ -7,6 +7,7 @@ import {
   uuid,
   boolean,
   integer,
+  bigint,
 } from "drizzle-orm/pg-core";
 
 // ─── BetterAuth tables ───
@@ -73,6 +74,7 @@ export const projects = pgTable("projects", {
     .references(() => user.id, { onDelete: "cascade" }),
   status: text("status").notNull().default("Under Review"),
   thumbnailUrl: text("thumbnail_url"),
+  storageBytes: bigint("storage_bytes", { mode: "number" }).default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

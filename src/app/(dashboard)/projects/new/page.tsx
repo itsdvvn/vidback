@@ -30,6 +30,7 @@ export default function NewProjectPage() {
       const formData = new FormData();
       formData.set("name", data.name);
       formData.set("videoUrl", data.videoUrl);
+      formData.set("storageBytes", String(data.fileSize || 0));
 
       const project = await createProject(formData);
       setCreated({

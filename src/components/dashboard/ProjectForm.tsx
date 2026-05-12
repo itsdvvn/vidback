@@ -9,6 +9,7 @@ import { Upload, Link2, Film } from "lucide-react";
 export interface ProjectFormData {
   name: string;
   videoUrl: string;
+  fileSize?: number;
 }
 
 export interface ProjectFormProps {
@@ -74,6 +75,7 @@ export function ProjectForm({ onSubmit, uploading = false }: ProjectFormProps) {
         body: JSON.stringify({
           filename: videoFile.name,
           contentType: videoFile.type || "video/mp4",
+          fileSize: videoFile.size,
         }),
       });
       if (!uploadRes.ok) {
@@ -81,7 +83,8 @@ export function ProjectForm({ onSubmit, uploading = false }: ProjectFormProps) {
         throw new Error(errData.error || "Failed to get upload URL");
       }
 
-      const { presignedPutUrl, presignedGetUrl } = await uploadRes.json();
+      const { presignedPutUrl, presignedGetUrl, fileSize } =
+        await uploadRes.json();
 
       // Step 2: Upload file directly to R2 via presigned URL (bypasses Vercel's 4.5MB limit)
       const xhr = new XMLHttpRequest();
@@ -103,7 +106,11 @@ export function ProjectForm({ onSubmit, uploading = false }: ProjectFormProps) {
       });
 
       // Step 3: Submit with the R2 playback URL
-      onSubmit({ name: name.trim(), videoUrl: presignedGetUrl });
+      onSubmit({
+        name: name.trim(),
+        videoUrl: presignedGetUrl,
+        fileSize,
+      });
     } catch (err) {
       setUrlError(err instanceof Error ? err.message : "Upload failed");
     } finally {
