@@ -38,25 +38,15 @@ export const R2_BUCKET = process.env.R2_BUCKET || "vidback";
 
 /** Ensure the bucket exists and has CORS configured — call once at startup */
 export async function ensureBucket(): Promise<void> {
+  // The bucket should already exist from local setup.
+  // If it doesn't, this will silently skip CORS configuration.
+  // (Pushing these commands on every cold-start causes auth header issues on Vercel.)
   try {
     await r2.send(new CreateBucketCommand({ Bucket: R2_BUCKET }));
-    console.log(`[R2] Created bucket "${R2_BUCKET}"`);
-  } catch (err: any) {
-    // BucketAlreadyOwnedByYou / BucketAlreadyExists — no problem
-    if (
-      err.name === "BucketAlreadyOwnedByYou" ||
-      err.name === "BucketAlreadyExists"
-    ) {
-      // bucket already exists, still set CORS
-    } else {
-      console.warn(
-        `[R2] Could not create bucket "${R2_BUCKET}": ${err.message}`,
-      );
-      return;
-    }
+  } catch {
+    // Bucket likely already exists — that's fine
   }
 
-  // Set CORS policy so browsers can upload directly to R2
   try {
     await r2.send(
       new PutBucketCorsCommand({
@@ -74,9 +64,8 @@ export async function ensureBucket(): Promise<void> {
         },
       }),
     );
-    console.log(`[R2] CORS configured for bucket "${R2_BUCKET}"`);
-  } catch (err: any) {
-    console.warn(`[R2] Could not set CORS: ${err.message}`);
+  } catch {
+    // CORS is best-effort — bucket may already have it configured
   }
 }
 
@@ -85,17 +74,13 @@ export async function ensureBucket(): Promise<void> {
  * Extracts the R2 key from a previous presigned URL, or uses the key directly.
  */
 export async function refreshSignedUrl(keyOrUrl: string): Promise<string> {
-  // If it looks like a full URL (contains a path /uploads/), extract the key
   const uploadsMatch = keyOrUrl.match(/\/uploads\/[^?]+/);
   const key = uploadsMatch ? uploadsMatch[0].replace(/^\//, "") : keyOrUrl;
 
   const url = await getSignedUrl(
     r2,
-    new GetObjectCommand({
-      Bucket: R2_BUCKET,
-      Key: key,
-    }),
-    { expiresIn: 60 * 60 * 24 * 7 }, // 7 days
+    new GetObjectCommand({ Bucket: R2_BUCKET, Key: key }),
+    { expiresIn: 60 * 60 * 24 * 7 },
   );
   return url;
 }
