@@ -20,10 +20,12 @@ export function CustomTimeline() {
   };
 
   const onMouseDown = (e: MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
     const container = e.currentTarget;
     handleSeek(e.clientX, container);
 
     const onMove = (moveEvent: globalThis.MouseEvent) => {
+      moveEvent.preventDefault();
       handleSeek(moveEvent.clientX, container);
     };
     const onUp = () => {
@@ -35,14 +37,26 @@ export function CustomTimeline() {
   };
 
   const onTouchStart = (e: TouchEvent<HTMLDivElement>) => {
+    e.preventDefault();
     const container = e.currentTarget;
     handleSeek(e.touches[0].clientX, container);
+
+    const onMove = (moveEvent: globalThis.TouchEvent) => {
+      moveEvent.preventDefault();
+      handleSeek(moveEvent.touches[0].clientX, container);
+    };
+    const onEnd = () => {
+      window.removeEventListener("touchmove", onMove);
+      window.removeEventListener("touchend", onEnd);
+    };
+    window.addEventListener("touchmove", onMove, { passive: false });
+    window.addEventListener("touchend", onEnd);
   };
 
   return (
-    <div className="mt-2 w-full">
+    <div className="mt-2 w-full touch-none select-none">
       <div
-        className="relative h-8 w-full cursor-pointer group"
+        className="relative h-10 sm:h-8 w-full cursor-pointer group py-2 -my-2"
         onMouseDown={onMouseDown}
         onTouchStart={onTouchStart}
       >
