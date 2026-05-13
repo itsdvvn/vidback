@@ -314,31 +314,91 @@ function ProjectVideoSection({
     [seek],
   );
 
-  // Auto-capture thumbnail using the server-side ffmpeg.wasm endpoint
-  // Server-side avoids CORS issues with R2 presigned URLs
+  // Auto-capture thumbnail using client-side canvas (loads video in browser, captures frame)
   useEffect(() => {
     if (!project?.videoUrl || project.thumbnailUrl) return;
 
     let cancelled = false;
     const timer = setTimeout(async () => {
       try {
-        const res = await fetch("/api/thumbnail/generate", {
+        // Create a hidden video element to capture a frame
+        const video = document.createElement("video");
+        video.crossOrigin = "anonymous";
+        video.preload = "metadata";
+        video.src = project.videoUrl;
+        video.muted = true;
+        video.playsInline = true;
+        video.style.display = "none";
+        document.body.appendChild(video);
+
+        // Wait for metadata
+        await new Promise<void>((resolve, reject) => {
+          const onMeta = () => {
+            video.removeEventListener("loadedmetadata", onMeta);
+            resolve();
+          };
+          const onErr = () => {
+            video.removeEventListener("error", onErr);
+            reject();
+          };
+          video.addEventListener("loadedmetadata", onMeta);
+          video.addEventListener("error", onErr);
+          if (video.readyState >= 1) resolve();
+        });
+
+        if (cancelled) {
+          video.remove();
+          return;
+        }
+
+        // Seek to 5 seconds
+        video.currentTime = Math.min(5, video.duration || 5);
+        await new Promise<void>((resolve) => {
+          const onSeek = () => {
+            video.removeEventListener("seeked", onSeek);
+            resolve();
+          };
+          video.addEventListener("seeked", onSeek);
+          if (Math.abs(video.currentTime - 5) < 0.1) resolve();
+        });
+
+        if (cancelled) {
+          video.remove();
+          return;
+        }
+
+        // Draw frame to canvas
+        const canvas = document.createElement("canvas");
+        canvas.width = video.videoWidth || 640;
+        canvas.height = video.videoHeight || 360;
+        canvas.getContext("2d")?.drawImage(video, 0, 0);
+        video.remove();
+
+        // Convert to blob
+        const blob = await new Promise<Blob>((resolve) =>
+          canvas.toBlob((b) => resolve(b!), "image/jpeg", 0.85),
+        );
+        if (cancelled) return;
+
+        // Convert to base64
+        const reader = new FileReader();
+        const base64 = await new Promise<string>((resolve, reject) => {
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+
+        // Upload thumbnail via the existing R2 upload API
+        const res = await fetch("/api/thumbnail/upload", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            videoUrl: project.videoUrl,
-            projectId: project.id,
-            timeSeconds: 5,
-          }),
+          body: JSON.stringify({ projectId: project.id, imageBase64: base64 }),
         });
         if (cancelled || !res.ok) return;
         const { thumbnailUrl } = await res.json();
-        if (!cancelled) {
-          const { updateProjectThumbnail } = await import("@/lib/actions");
-          await updateProjectThumbnail(project.id, thumbnailUrl);
-        }
+        if (!cancelled) await updateProjectThumbnail(project.id, thumbnailUrl);
       } catch {
-        /* ignore server-side capture errors */
+        /* capture is best-effort */
       }
     }, 3000);
 
