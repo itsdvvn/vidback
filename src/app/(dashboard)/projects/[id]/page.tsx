@@ -321,66 +321,84 @@ function ProjectVideoSection({
     let cancelled = false;
     const timer = setTimeout(async () => {
       try {
-        // Create a hidden video element to capture a frame
         const video = document.createElement("video");
         video.crossOrigin = "anonymous";
-        video.preload = "metadata";
+        video.preload = "auto";
         video.src = project.videoUrl;
         video.muted = true;
         video.playsInline = true;
         video.style.display = "none";
         document.body.appendChild(video);
 
-        // Wait for metadata
+        // Wait for enough data to be loaded
         await new Promise<void>((resolve, reject) => {
-          const onMeta = () => {
-            video.removeEventListener("loadedmetadata", onMeta);
+          const onCanPlay = () => {
+            video.removeEventListener("canplay", onCanPlay);
             resolve();
           };
-          const onErr = () => {
-            video.removeEventListener("error", onErr);
+          const onError = () => {
+            video.removeEventListener("error", onError);
             reject();
           };
-          video.addEventListener("loadedmetadata", onMeta);
-          video.addEventListener("error", onErr);
-          if (video.readyState >= 1) resolve();
+          video.addEventListener("canplay", onCanPlay);
+          video.addEventListener("error", onError);
+          if (video.readyState >= 3) resolve();
         });
-
         if (cancelled) {
           video.remove();
           return;
         }
 
-        // Seek to 5 seconds
+        // Seek to 5 seconds and wait for actual frame
         video.currentTime = Math.min(5, video.duration || 5);
         await new Promise<void>((resolve) => {
           const onSeek = () => {
             video.removeEventListener("seeked", onSeek);
-            resolve();
+            // Small delay to let the decoder produce the first frame
+            setTimeout(resolve, 200);
           };
           video.addEventListener("seeked", onSeek);
-          if (Math.abs(video.currentTime - 5) < 0.1) resolve();
+          if (Math.abs(video.currentTime - 5) < 0.1) {
+            setTimeout(resolve, 200);
+          }
         });
-
         if (cancelled) {
           video.remove();
           return;
         }
 
-        // Draw frame to canvas
+        // Set a solid background first, then draw
         const canvas = document.createElement("canvas");
         canvas.width = video.videoWidth || 640;
         canvas.height = video.videoHeight || 360;
-        canvas.getContext("2d")?.drawImage(video, 0, 0);
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          video.remove();
+          return;
+        }
+
+        // Draw a dark background, then the video frame on top
+        ctx.fillStyle = "#1a1a1a";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         video.remove();
 
-        // Convert to blob
+        // Try to extract pixel data to verify it's not blank
+        const imageData = ctx.getImageData(
+          canvas.width / 2,
+          canvas.height / 2,
+          1,
+          1,
+        ).data;
+        const isBlank =
+          imageData[0] === 26 && imageData[1] === 26 && imageData[2] === 26;
+        if (isBlank) throw new Error("Blank frame");
+
         const blob = await new Promise<Blob>((resolve) =>
           canvas.toBlob((b) => resolve(b!), "image/jpeg", 0.85),
         );
         if (cancelled) return;
 
-        // Convert to base64
         const reader = new FileReader();
         const base64 = await new Promise<string>((resolve, reject) => {
           reader.onloadend = () => resolve(reader.result as string);
@@ -388,7 +406,6 @@ function ProjectVideoSection({
           reader.readAsDataURL(blob);
         });
 
-        // Upload thumbnail via the existing R2 upload API
         const res = await fetch("/api/thumbnail/upload", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -398,7 +415,7 @@ function ProjectVideoSection({
         const { thumbnailUrl } = await res.json();
         if (!cancelled) await updateProjectThumbnail(project.id, thumbnailUrl);
       } catch {
-        /* capture is best-effort */
+        // capture is best-effort
       }
     }, 3000);
 
