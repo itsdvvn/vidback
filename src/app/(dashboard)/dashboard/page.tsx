@@ -401,10 +401,10 @@ export default function DashboardPage() {
                     >
                       <Link
                         href={`/projects/${project.id}`}
-                        className="block rounded-lg border border-border bg-card p-3 shadow-sm transition-all hover:shadow-md hover:border-primary/30"
+                        className="block max-w-[265px] rounded-lg border border-border bg-card p-3 shadow-sm transition-all hover:shadow-md hover:border-primary/30"
                       >
                         {project.thumbnailUrl && (
-                          <div className="aspect-video rounded-md overflow-hidden bg-muted mb-2">
+                          <div className="h-24 rounded-md overflow-hidden bg-muted mb-2">
                             <img
                               src={project.thumbnailUrl}
                               alt=""
