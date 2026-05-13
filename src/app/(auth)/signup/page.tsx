@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/Card";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -15,6 +16,9 @@ export default function SignUpPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [honeypot, setHoneypot] = useState("");
+  const [formStart] = useState(Date.now());
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -27,6 +31,18 @@ export default function SignUpPage() {
 
     if (password.length < 8) {
       setError("Password must be at least 8 characters.");
+      return;
+    }
+
+    // Anti-bot: honeypot check (bots often fill hidden fields)
+    if (honeypot) {
+      setError("Invalid submission.");
+      return;
+    }
+
+    // Anti-bot: form submission speed check (< 2 seconds = likely a bot)
+    if (Date.now() - formStart < 2000) {
+      setError("Please wait before submitting.");
       return;
     }
 
@@ -76,6 +92,17 @@ export default function SignUpPage() {
           </p>
         </div>
 
+        {/* Hidden honeypot field — invisible to humans, but bots will fill it */}
+        <input
+          type="text"
+          name="website"
+          value={honeypot}
+          onChange={(e) => setHoneypot(e.target.value)}
+          className="hidden"
+          tabIndex={-1}
+          autoComplete="off"
+        />
+
         {error && (
           <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-400">
             {error}
@@ -106,18 +133,42 @@ export default function SignUpPage() {
           }}
         />
 
-        <Input
-          id="password"
-          label="Password"
-          type="password"
-          placeholder="••••••••"
-          value={password}
-          onChange={(e) => {
-            setPassword(e.target.value);
-            if (error) setError("");
-          }}
-          hint="At least 8 characters"
-        />
+        <div className="space-y-1.5">
+          <label
+            htmlFor="password"
+            className="text-sm font-medium text-foreground"
+          >
+            Password
+          </label>
+          <div className="relative">
+            <input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (error) setError("");
+              }}
+              className="h-10 w-full rounded-lg border border-input bg-background px-3 pr-10 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-0"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              tabIndex={-1}
+            >
+              {showPassword ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
+            </button>
+          </div>
+          <p className="text-xs text-muted-foreground/70">
+            At least 8 characters
+          </p>
+        </div>
 
         <Button type="submit" className="w-full" loading={loading}>
           Create Account

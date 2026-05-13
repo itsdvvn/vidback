@@ -9,6 +9,7 @@ import {
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { nanoid } from "nanoid";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 const GET_URL_EXPIRY = 60 * 60 * 24 * 7; // 7 days
 
@@ -21,6 +22,14 @@ export async function POST(request: Request) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
+  // Rate limit uploads: 20 per hour per user
+  if (!checkRateLimit(`upload:${session.user.id}`, 20, 3600000)) {
+    return NextResponse.json(
+      { error: "Upload limit reached. Try again later." },
+      { status: 429 },
+    );
   }
 
   const { filename, contentType, fileSize } = await request.json();
