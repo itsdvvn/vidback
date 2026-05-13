@@ -11,8 +11,8 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { nanoid } from "nanoid";
 
-/** Presigned GET URLs for thumbnails are valid for 30 days */
-const THUMBNAIL_URL_EXPIRY = 60 * 60 * 24 * 30; // 30 days in seconds
+/** Presigned GET URLs for thumbnails are valid for 7 days (R2 limit) */
+const THUMBNAIL_URL_EXPIRY = 60 * 60 * 24 * 7; // 7 days in seconds
 
 /**
  * POST /api/thumbnail/generate
