@@ -25,6 +25,7 @@ import { authClient } from "@/lib/auth-client";
 import { useVideoPlayerActions } from "@/components/video/VideoPlayerProvider";
 import { ToastProvider, toast } from "@/components/ui/Toast";
 import { StatusSelector } from "@/components/dashboard/StatusSelector";
+import { captureVideoFrame } from "@/lib/thumbnail";
 
 export default function ProjectDetailPage() {
   const params = useParams();
@@ -314,29 +315,44 @@ function ProjectVideoSection({
     [seek],
   );
 
-  // Auto-capture thumbnail using server-side ffmpeg.wasm (reliable, no CORS issues)
+  // Auto-capture thumbnail on the client side using captureVideoFrame
   useEffect(() => {
     if (!project?.videoUrl || project.thumbnailUrl) return;
 
     let cancelled = false;
     const timer = setTimeout(async () => {
       try {
-        const res = await fetch("/api/thumbnail/generate", {
+        const blob = await captureVideoFrame(project.videoUrl, 5);
+
+        // Convert blob to base64
+        const reader = new FileReader();
+        const base64 = await new Promise<string>((resolve, reject) => {
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+
+        if (cancelled) return;
+
+        // Upload to R2 via the thumbnail upload API
+        const res = await fetch("/api/thumbnail/upload", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            videoUrl: project.videoUrl,
             projectId: project.id,
-            timeSeconds: 2,
+            imageBase64: base64,
           }),
         });
+
         if (cancelled || !res.ok) return;
         const { thumbnailUrl } = await res.json();
-        if (!cancelled) await updateProjectThumbnail(project.id, thumbnailUrl);
+        if (!cancelled) {
+          await updateProjectThumbnail(project.id, thumbnailUrl);
+        }
       } catch {
-        /* ignore */
+        /* ignore client-side capture errors */
       }
-    }, 2000);
+    }, 3000);
 
     return () => {
       cancelled = true;

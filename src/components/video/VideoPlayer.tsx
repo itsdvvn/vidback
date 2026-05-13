@@ -41,9 +41,11 @@ export function VideoPlayer({
       setComments(comments);
     }
   }, [comments, setComments]);
-  const [status, setStatus] = useState<"loading" | "error" | "ready">(
-    "loading",
-  );
+  const retriesRef = useRef(0);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [status, setStatus] = useState<
+    "loading" | "processing" | "error" | "ready"
+  >("loading");
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [aspectClass, setAspectClass] = useState<string>("aspect-video");
 
@@ -57,9 +59,22 @@ export function VideoPlayer({
     }
   }, []);
 
+  // Track previous src to reset retries only on actual src changes
+  const prevSrcRef = useRef(src);
+
   useEffect(() => {
     const el = videoRef.current;
     if (!el) return;
+
+    // Reset retry counter and timer only when the video source actually changes
+    if (prevSrcRef.current !== src) {
+      retriesRef.current = 0;
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
+      prevSrcRef.current = src;
+    }
 
     const onLoadedMetadata = () => {
       setDuration(el.duration);
@@ -77,6 +92,20 @@ export function VideoPlayer({
     const onEnded = () => setIsPlaying(false);
 
     const onError = () => {
+      if (retriesRef.current < 5) {
+        // Transition to processing state and retry after 2s
+        setStatus("processing");
+        retryTimerRef.current = setTimeout(() => {
+          retriesRef.current += 1;
+          setStatus("loading");
+          setErrorMessage("");
+          if (videoRef.current) {
+            videoRef.current.load();
+          }
+        }, 2000);
+        return;
+      }
+
       const mediaError = el.error;
       let msg = "Failed to load video.";
       if (mediaError) {
@@ -118,13 +147,24 @@ export function VideoPlayer({
       el.removeEventListener("ended", onEnded);
       el.removeEventListener("error", onError);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
+    src,
     setDuration,
     setCurrentTime,
     setIsPlaying,
     detectAspectRatio,
     registerVideoRef,
   ]);
+
+  // Cleanup retry timer on unmount
+  useEffect(() => {
+    return () => {
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className={cn("group relative w-full", className)}>
@@ -134,6 +174,19 @@ export function VideoPlayer({
           <div className="flex flex-col items-center gap-3 text-white">
             <Loader className="h-8 w-8 animate-spin" />
             <span className="text-sm font-medium">Loading video…</span>
+          </div>
+        </div>
+      )}
+
+      {/* Processing overlay */}
+      {status === "processing" && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/70 rounded-xl">
+          <div className="flex flex-col items-center gap-3 text-white">
+            <Loader className="h-8 w-8 animate-pulse" />
+            <span className="text-sm font-medium">Processing video…</span>
+            <span className="text-xs text-white/60">
+              This may take a few seconds
+            </span>
           </div>
         </div>
       )}
