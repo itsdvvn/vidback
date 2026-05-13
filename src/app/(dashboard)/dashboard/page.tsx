@@ -19,7 +19,7 @@ import {
   Calendar,
 } from "lucide-react";
 import Link from "next/link";
-import { getEditorProjects } from "@/lib/actions";
+import { getEditorProjects, updateProjectStatus } from "@/lib/actions";
 import { cn } from "@/lib/utils";
 
 type ProjectWithCounts = Project & {
@@ -276,13 +276,29 @@ export default function DashboardPage() {
                     </Link>
                   </td>
                   <td className="px-4 py-3">
-                    {project.status && (
-                      <Badge
-                        variant={statusVariantMap[project.status] ?? "default"}
-                      >
-                        {project.status}
-                      </Badge>
-                    )}
+                    <select
+                      value={project.status || "Under Review"}
+                      onChange={async (e) => {
+                        try {
+                          await updateProjectStatus(project.id, e.target.value);
+                          fetchProjects();
+                        } catch {
+                          /* ignore */
+                        }
+                      }}
+                      className="rounded-md border border-border bg-background px-2 py-1 text-xs font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring"
+                    >
+                      {[
+                        "Under Review",
+                        "In Progress",
+                        "Approved",
+                        "Needs Revision",
+                      ].map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
+                    </select>
                   </td>
                   <td className="px-4 py-3 text-center text-muted-foreground">
                     <span className="inline-flex items-center gap-1">
@@ -334,6 +350,25 @@ export default function DashboardPage() {
             return (
               <div
                 key={statusName}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.currentTarget.classList.add("bg-accent/50");
+                }}
+                onDragLeave={(e) => {
+                  e.currentTarget.classList.remove("bg-accent/50");
+                }}
+                onDrop={async (e) => {
+                  e.preventDefault();
+                  e.currentTarget.classList.remove("bg-accent/50");
+                  const projectId = e.dataTransfer.getData("text/plain");
+                  const newStatus = statusName;
+                  try {
+                    await updateProjectStatus(projectId, newStatus);
+                    fetchProjects();
+                  } catch {
+                    /* ignore */
+                  }
+                }}
                 className="min-w-[260px] flex-shrink-0 rounded-xl border border-border bg-muted/20 p-4"
               >
                 <div className="mb-3 flex items-center justify-between">
@@ -353,26 +388,47 @@ export default function DashboardPage() {
                 </div>
                 <div className="space-y-3">
                   {columnProjects.map((project) => (
-                    <Link
+                    <div
                       key={project.id}
-                      href={`/projects/${project.id}`}
-                      className="block rounded-lg border border-border bg-card p-3 shadow-sm transition-all hover:shadow-md hover:border-primary/30"
+                      draggable
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData("text/plain", project.id);
+                        e.currentTarget.classList.add("opacity-50");
+                      }}
+                      onDragEnd={(e) => {
+                        e.currentTarget.classList.remove("opacity-50");
+                      }}
                     >
-                      <p className="text-sm font-medium text-foreground truncate">
-                        {project.name}
-                      </p>
-                      <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-                        <span className="inline-flex items-center gap-1">
-                          <MessageSquare className="h-3 w-3" />
-                          {project.commentCount ?? 0}
-                        </span>
-                        {(project.unresolvedCount ?? 0) > 0 && (
-                          <Badge variant="warning">
-                            {project.unresolvedCount} open
-                          </Badge>
+                      <Link
+                        href={`/projects/${project.id}`}
+                        className="block rounded-lg border border-border bg-card p-3 shadow-sm transition-all hover:shadow-md hover:border-primary/30"
+                      >
+                        {project.thumbnailUrl && (
+                          <div className="aspect-video rounded-md overflow-hidden bg-muted mb-2">
+                            <img
+                              src={project.thumbnailUrl}
+                              alt=""
+                              className="w-full h-full object-cover"
+                              loading="lazy"
+                            />
+                          </div>
                         )}
-                      </div>
-                    </Link>
+                        <p className="text-sm font-medium text-foreground truncate">
+                          {project.name}
+                        </p>
+                        <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                          <span className="inline-flex items-center gap-1">
+                            <MessageSquare className="h-3 w-3" />
+                            {project.commentCount ?? 0}
+                          </span>
+                          {(project.unresolvedCount ?? 0) > 0 && (
+                            <Badge variant="warning">
+                              {project.unresolvedCount} open
+                            </Badge>
+                          )}
+                        </div>
+                      </Link>
+                    </div>
                   ))}
                   {columnProjects.length === 0 && (
                     <p className="text-center text-xs text-muted-foreground py-6">
