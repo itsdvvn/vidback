@@ -1,9 +1,18 @@
 "use client";
 
 import { useEffect } from "react";
-import { useVideoPlayerState, useVideoPlayerActions } from "./VideoPlayerProvider";
+import {
+  useVideoPlayerState,
+  useVideoPlayerActions,
+} from "./VideoPlayerProvider";
 import { cn } from "@/lib/utils";
-import { Play, Pause, SkipBack, SkipForward, MessageSquarePlus } from "lucide-react";
+import {
+  Play,
+  Pause,
+  SkipBack,
+  SkipForward,
+  MessageSquarePlus,
+} from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
 export interface PlaybackControlsProps {
@@ -61,6 +70,7 @@ export function PlaybackControls({
     >
       <button
         onClick={rewind10}
+        aria-label="Rewind 10 seconds"
         title="Rewind 10s (J)"
         className="rounded-lg p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
       >
@@ -69,6 +79,7 @@ export function PlaybackControls({
 
       <button
         onClick={togglePlay}
+        aria-label={isPlaying ? "Pause" : "Play"}
         title={isPlaying ? "Pause (Space)" : "Play (Space)"}
         className="rounded-lg p-2.5 text-white bg-zinc-800 hover:bg-zinc-700 transition-colors"
       >
@@ -81,6 +92,7 @@ export function PlaybackControls({
 
       <button
         onClick={forward10}
+        aria-label="Forward 10 seconds"
         title="Forward 10s (L)"
         className="rounded-lg p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
       >
@@ -88,8 +100,7 @@ export function PlaybackControls({
       </button>
 
       <div className="ml-3 text-sm font-mono text-zinc-400 tabular-nums">
-        {formatTime(currentTime)}{" "}
-        <span className="text-zinc-600">/</span>{" "}
+        {formatTime(currentTime)} <span className="text-zinc-600">/</span>{" "}
         {formatTime(duration)}
       </div>
 
@@ -108,10 +119,26 @@ export function PlaybackControls({
       )}
 
       <div className="hidden sm:flex items-center gap-3 ml-4 text-xs text-zinc-500">
-        <span><kbd className="rounded border border-zinc-700 bg-zinc-800 px-1.5 py-0.5 font-mono text-zinc-300">Space</kbd></span>
-        <span><kbd className="rounded border border-zinc-700 bg-zinc-800 px-1.5 py-0.5 font-mono text-zinc-300">J</kbd></span>
-        <span><kbd className="rounded border border-zinc-700 bg-zinc-800 px-1.5 py-0.5 font-mono text-zinc-300">K</kbd></span>
-        <span><kbd className="rounded border border-zinc-700 bg-zinc-800 px-1.5 py-0.5 font-mono text-zinc-300">L</kbd></span>
+        <span>
+          <kbd className="rounded border border-zinc-700 bg-zinc-800 px-1.5 py-0.5 font-mono text-zinc-300">
+            Space
+          </kbd>
+        </span>
+        <span>
+          <kbd className="rounded border border-zinc-700 bg-zinc-800 px-1.5 py-0.5 font-mono text-zinc-300">
+            J
+          </kbd>
+        </span>
+        <span>
+          <kbd className="rounded border border-zinc-700 bg-zinc-800 px-1.5 py-0.5 font-mono text-zinc-300">
+            K
+          </kbd>
+        </span>
+        <span>
+          <kbd className="rounded border border-zinc-700 bg-zinc-800 px-1.5 py-0.5 font-mono text-zinc-300">
+            L
+          </kbd>
+        </span>
       </div>
     </div>
   );
