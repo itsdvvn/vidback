@@ -161,6 +161,44 @@ export default function ClientReviewPage({
     [project?.id, addOptimisticComment, fetchData],
   );
 
+  // ─── Reply handler (optimistic + server) ───
+  const handleReply = useCallback(
+    async (
+      parentId: number,
+      data: { authorName: string; content: string; timestamp: number },
+    ) => {
+      const optimistic: Comment = {
+        id: Date.now(),
+        projectId: project?.id || "",
+        authorName: data.authorName,
+        content: data.content,
+        parentId,
+        timestamp: 0,
+        isResolved: null,
+        createdAt: new Date(),
+        replies: [],
+      };
+
+      startTransition(() => {
+        addOptimisticComment(optimistic);
+      });
+
+      try {
+        const formData = new FormData();
+        formData.set("projectId", project?.id || "");
+        formData.set("authorName", data.authorName);
+        formData.set("content", data.content);
+        formData.set("timestamp", "0");
+        formData.set("parentId", String(parentId));
+        await createComment(formData);
+      } catch {
+        // Rollback on error — refetch from server
+        await fetchData();
+      }
+    },
+    [project?.id, addOptimisticComment, fetchData],
+  );
+
   // ─── Loading ───
   if (loadState === "loading") {
     return (
@@ -221,6 +259,7 @@ export default function ClientReviewPage({
           comments={optimisticComments}
           status={status as "loading" | "empty" | "error" | "success"}
           onAddComment={handleAddComment}
+          onReply={handleReply}
           clientName={clientName}
         />
 
@@ -270,6 +309,7 @@ function ReviewVideoSection({
   comments,
   status,
   onAddComment,
+  onReply,
   clientName,
 }: {
   project: any;
@@ -280,6 +320,10 @@ function ReviewVideoSection({
     content: string;
     timestamp: number;
   }) => Promise<void>;
+  onReply?: (
+    parentId: number,
+    data: { authorName: string; content: string; timestamp: number },
+  ) => Promise<void>;
   clientName: string;
 }) {
   const { seek } = useVideoPlayerActions();
@@ -312,6 +356,7 @@ function ReviewVideoSection({
           comments={comments}
           status={status}
           onSeek={handleSeekToComment}
+          onReply={onReply}
         />
       </div>
     </div>

@@ -73,7 +73,7 @@ export function CommentThread({
       )}
 
       {/* Reply input or button */}
-      {isEditor && onReply && (
+      {onReply && (
         <div className="ml-6">
           {showReplyInput ? (
             <CommentInput

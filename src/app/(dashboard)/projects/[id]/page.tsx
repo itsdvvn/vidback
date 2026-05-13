@@ -25,7 +25,6 @@ import { authClient } from "@/lib/auth-client";
 import { useVideoPlayerActions } from "@/components/video/VideoPlayerProvider";
 import { ToastProvider, toast } from "@/components/ui/Toast";
 import { StatusSelector } from "@/components/dashboard/StatusSelector";
-import { captureVideoFrame } from "@/lib/thumbnail";
 
 export default function ProjectDetailPage() {
   const params = useParams();
@@ -315,42 +314,31 @@ function ProjectVideoSection({
     [seek],
   );
 
-  // Auto-capture thumbnail on the client side using captureVideoFrame
+  // Auto-capture thumbnail using the server-side ffmpeg.wasm endpoint
+  // Server-side avoids CORS issues with R2 presigned URLs
   useEffect(() => {
     if (!project?.videoUrl || project.thumbnailUrl) return;
 
     let cancelled = false;
     const timer = setTimeout(async () => {
       try {
-        const blob = await captureVideoFrame(project.videoUrl, 5);
-
-        // Convert blob to base64
-        const reader = new FileReader();
-        const base64 = await new Promise<string>((resolve, reject) => {
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
-        });
-
-        if (cancelled) return;
-
-        // Upload to R2 via the thumbnail upload API
-        const res = await fetch("/api/thumbnail/upload", {
+        const res = await fetch("/api/thumbnail/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            videoUrl: project.videoUrl,
             projectId: project.id,
-            imageBase64: base64,
+            timeSeconds: 5,
           }),
         });
-
         if (cancelled || !res.ok) return;
         const { thumbnailUrl } = await res.json();
         if (!cancelled) {
+          const { updateProjectThumbnail } = await import("@/lib/actions");
           await updateProjectThumbnail(project.id, thumbnailUrl);
         }
       } catch {
-        /* ignore client-side capture errors */
+        /* ignore server-side capture errors */
       }
     }, 3000);
 

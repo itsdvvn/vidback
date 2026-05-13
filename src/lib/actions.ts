@@ -346,6 +346,7 @@ export async function createComment(formData: FormData) {
     authorName: z.string().min(1, "Name is required"),
     content: z.string().min(1, "Comment is required"),
     timestamp: z.coerce.number().min(0),
+    parentId: z.coerce.number().optional(),
   });
 
   const parsed = schema.parse({
@@ -353,6 +354,9 @@ export async function createComment(formData: FormData) {
     authorName: formData.get("authorName"),
     content: formData.get("content"),
     timestamp: formData.get("timestamp"),
+    parentId: formData.get("parentId")
+      ? Number(formData.get("parentId"))
+      : undefined,
   });
 
   const [project] = await db
@@ -370,6 +374,7 @@ export async function createComment(formData: FormData) {
       authorName: parsed.authorName,
       content: parsed.content,
       timestamp: parsed.timestamp,
+      parentId: parsed.parentId ?? null,
     })
     .returning();
 
@@ -401,6 +406,7 @@ export async function updateProjectThumbnail(
     .where(eq(projects.id, projectId));
 
   revalidatePath(`/projects/${projectId}`);
+  revalidatePath("/dashboard");
   return { success: true };
 }
 
