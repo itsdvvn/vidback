@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { BetaCounter } from "@/components/ui/BetaCounter";
+import { Reveal, DemoPlayer } from "@/components/ui/Reveal";
 import {
   Film,
   MessageSquare,
@@ -104,73 +105,112 @@ export default function Home() {
         </section>
 
         {/* ─── How It Works ─── */}
-        <section
-          id="how-it-works"
-          className="border-b border-border py-20 sm:py-28"
-        >
-          <div className="mx-auto max-w-6xl px-4">
-            <div className="mx-auto max-w-2xl text-center">
-              <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-                Three steps to clear feedback
-              </h2>
-              <p className="mt-4 text-muted-foreground">
-                From upload to resolution — get your video feedback organized in
-                minutes.
-              </p>
-            </div>
+        <Reveal>
+          <section
+            id="how-it-works"
+            className="border-b border-border py-20 sm:py-28"
+          >
+            <div className="mx-auto max-w-6xl px-4">
+              <div className="mx-auto max-w-2xl text-center">
+                <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+                  Three steps to clear feedback
+                </h2>
+                <p className="mt-4 text-muted-foreground">
+                  From upload to resolution — get your video feedback organized
+                  in minutes.
+                </p>
+              </div>
 
-            <div className="mt-16 grid gap-8 md:grid-cols-3">
-              {[
-                {
-                  step: "01",
-                  title: "Upload & Share",
-                  body: "Upload your video file or paste a URL. VidBack generates a unique, private link you send to your client. No account needed on their end.",
-                  icon: Film,
-                  color: "bg-primary/10 text-primary",
-                },
-                {
-                  step: "02",
-                  title: "Client Reviews",
-                  body: 'Your client watches the video in a clean player. They click "Add Comment," type their feedback, and the exact timestamp is captured automatically.',
-                  icon: MessageSquare,
-                  color: "bg-secondary/10 text-secondary",
-                },
-                {
-                  step: "03",
-                  title: "Resolve & Iterate",
-                  body: "Every comment appears on your dashboard pinned to the timeline. Reply, mark resolved, and track progress — all without digging through email chains.",
-                  icon: CheckCircle,
-                  color: "bg-primary/10 text-primary",
-                },
-              ].map((step) => (
-                <div
-                  key={step.step}
-                  className="group relative rounded-2xl border border-border bg-card p-8 transition-all hover:shadow-lg hover:-translate-y-1"
-                >
-                  <div className="mb-6 flex items-center gap-4">
-                    <div
-                      className={`flex h-12 w-12 items-center justify-center rounded-xl ${step.color}`}
-                    >
-                      <step.icon className="h-6 w-6" />
+              <div className="mt-16 grid gap-8 md:grid-cols-3">
+                {[
+                  {
+                    step: "01",
+                    title: "Upload & Share",
+                    body: "Upload your video file or paste a URL. VidBack generates a unique, private link you send to your client. No account needed on their end.",
+                    icon: Film,
+                    color: "bg-primary/10 text-primary",
+                  },
+                  {
+                    step: "02",
+                    title: "Client Reviews",
+                    body: 'Your client watches the video in a clean player. They click "Add Comment," type their feedback, and the exact timestamp is captured automatically.',
+                    icon: MessageSquare,
+                    color: "bg-secondary/10 text-secondary",
+                  },
+                  {
+                    step: "03",
+                    title: "Resolve & Iterate",
+                    body: "Every comment appears on your dashboard pinned to the timeline. Reply, mark resolved, and track progress — all without digging through email chains.",
+                    icon: CheckCircle,
+                    color: "bg-primary/10 text-primary",
+                  },
+                ].map((step) => (
+                  <div
+                    key={step.step}
+                    className="group relative rounded-2xl border border-border bg-card p-8 transition-all hover:shadow-lg hover:-translate-y-1"
+                  >
+                    <div className="mb-6 flex items-center gap-4">
+                      <div
+                        className={`flex h-12 w-12 items-center justify-center rounded-xl ${step.color}`}
+                      >
+                        <step.icon className="h-6 w-6" />
+                      </div>
+                      <span className="text-sm font-mono text-muted-foreground/50">
+                        {step.step}
+                      </span>
                     </div>
-                    <span className="text-sm font-mono text-muted-foreground/50">
-                      {step.step}
-                    </span>
+                    <h3 className="text-lg font-semibold text-foreground">
+                      {step.title}
+                    </h3>
+                    <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                      {step.body}
+                    </p>
                   </div>
-                  <h3 className="text-lg font-semibold text-foreground">
-                    {step.title}
-                  </h3>
-                  <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                    {step.body}
-                  </p>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
+        </Reveal>
+
+        {/* ─── Interactive Demo ─── */}
+        <Reveal>
+          <section className="border-b border-border py-20 sm:py-28">
+            <div className="mx-auto max-w-5xl px-4">
+              <div className="grid items-center gap-12 md:grid-cols-2">
+                <div>
+                  <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+                    See it in action
+                  </h2>
+                  <p className="mt-4 text-muted-foreground leading-relaxed">
+                    Click play to see how clients leave time-coded feedback.
+                    Each comment is pinned to the exact second — no more "at
+                    3:42 — no wait, 4:15 — actually 3:48."
+                  </p>
+                  <ul className="mt-6 space-y-3">
+                    {[
+                      "Clients click Add Comment while watching",
+                      "Timestamp is captured automatically",
+                      "You see every comment on the timeline",
+                      "Reply, resolve, and track changes",
+                    ].map((item) => (
+                      <li
+                        key={item}
+                        className="flex items-start gap-3 text-sm text-muted-foreground"
+                      >
+                        <CheckCircle className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <DemoPlayer />
+              </div>
+            </div>
+          </section>
+        </Reveal>
 
         {/* ─── Why VidBack ─── */}
-        <section className="border-b border-border py-20 sm:py-28">
+        <Reveal>
           <div className="mx-auto max-w-6xl px-4">
             <div className="mx-auto max-w-2xl text-center">
               <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
@@ -231,107 +271,114 @@ export default function Home() {
               ))}
             </div>
           </div>
-        </section>
+        </Reveal>
 
         {/* ─── Use Cases ─── */}
-        <section className="border-b border-border py-20 sm:py-28">
-          <div className="mx-auto max-w-6xl px-4">
-            <div className="mx-auto max-w-2xl text-center">
-              <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-                Built for real workflows
-              </h2>
-            </div>
+        <Reveal>
+          <section className="border-b border-border py-20 sm:py-28">
+            <div className="mx-auto max-w-6xl px-4">
+              <div className="mx-auto max-w-2xl text-center">
+                <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+                  Built for real workflows
+                </h2>
+              </div>
 
-            <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {[
-                {
-                  role: "Freelance Editors",
-                  scenario:
-                    "Send review links directly to clients. No more screen recording your timeline and posting to YouTube unlisted.",
-                },
-                {
-                  role: "Post-Production Studios",
-                  scenario:
-                    "Keep every round of feedback organised per project. Your team sees the same timeline your client does.",
-                },
-                {
-                  role: "Content Creators",
-                  scenario:
-                    "Share drafts with your editor or collaborator. Pinpoint exactly which cuts need work without scheduling a call.",
-                },
-                {
-                  role: "Agency Producers",
-                  scenario:
-                    "Collect client feedback in one place. Share the review link with stakeholders and track approvals.",
-                },
-                {
-                  role: "Video Teams",
-                  scenario:
-                    "Replace long email threads and Slack messages with a single timeline. Everyone sees the same feedback.",
-                },
-                {
-                  role: "YouTubers & Streamers",
-                  scenario:
-                    "Share raw edits with your editor. Leave voice notes or text feedback pinned to the moment.",
-                },
-              ].map((useCase) => (
-                <div
-                  key={useCase.role}
-                  className="rounded-xl border border-border bg-card p-6"
-                >
-                  <h3 className="font-semibold text-foreground">
-                    {useCase.role}
-                  </h3>
-                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                    {useCase.scenario}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ─── Beta Counter ─── */}
-        <section className="border-b border-border py-12 sm:py-16">
-          <div className="mx-auto max-w-3xl px-4 text-center">
-            <div className="rounded-2xl border border-border bg-card px-8 py-10 shadow-sm">
-              <h3 className="text-lg font-semibold text-foreground">
-                Limited Beta
-              </h3>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Join early and shape the product
-              </p>
-              <BetaCounter />
-            </div>
-          </div>
-        </section>
-
-        {/* ─── CTA ─── */}
-        <section className="py-20 sm:py-28">
-          <div className="mx-auto max-w-3xl px-4 text-center">
-            <div className="rounded-2xl border border-border bg-card px-8 py-16 shadow-sm sm:px-16">
-              <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-                Ready to simplify your feedback?
-              </h2>
-              <p className="mx-auto mt-4 max-w-lg text-muted-foreground">
-                Stop chasing clients for timestamp corrections. Send one link,
-                get precise feedback, and ship faster.
-              </p>
-              <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-                <Link href="/signup">
-                  <Button size="lg" className="gap-2">
-                    Create your free account <ArrowRight className="h-4 w-4" />
-                  </Button>
-                </Link>
-                <Link href="/login">
-                  <Button variant="secondary" size="lg">
-                    I already have an account
-                  </Button>
-                </Link>
+              <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {[
+                  {
+                    role: "Freelance Editors",
+                    scenario:
+                      "Send review links directly to clients. No more screen recording your timeline and posting to YouTube unlisted.",
+                  },
+                  {
+                    role: "Post-Production Studios",
+                    scenario:
+                      "Keep every round of feedback organised per project. Your team sees the same timeline your client does.",
+                  },
+                  {
+                    role: "Content Creators",
+                    scenario:
+                      "Share drafts with your editor or collaborator. Pinpoint exactly which cuts need work without scheduling a call.",
+                  },
+                  {
+                    role: "Agency Producers",
+                    scenario:
+                      "Collect client feedback in one place. Share the review link with stakeholders and track approvals.",
+                  },
+                  {
+                    role: "Video Teams",
+                    scenario:
+                      "Replace long email threads and Slack messages with a single timeline. Everyone sees the same feedback.",
+                  },
+                  {
+                    role: "YouTubers & Streamers",
+                    scenario:
+                      "Share raw edits with your editor. Leave voice notes or text feedback pinned to the moment.",
+                  },
+                ].map((useCase) => (
+                  <div
+                    key={useCase.role}
+                    className="rounded-xl border border-border bg-card p-6"
+                  >
+                    <h3 className="font-semibold text-foreground">
+                      {useCase.role}
+                    </h3>
+                    <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                      {useCase.scenario}
+                    </p>
+                  </div>
+                ))}
               </div>
             </div>
-          </div>
-        </section>
+          </section>
+        </Reveal>
+
+        {/* ─── Beta Counter ─── */}
+        <Reveal>
+          <section className="border-b border-border py-12 sm:py-16">
+            <div className="mx-auto max-w-3xl px-4 text-center">
+              <div className="rounded-2xl border border-border bg-card px-8 py-10 shadow-sm">
+                <h3 className="text-lg font-semibold text-foreground">
+                  Limited Beta
+                </h3>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Join early and shape the product
+                </p>
+                <BetaCounter />
+              </div>
+            </div>
+          </section>
+        </Reveal>
+
+        {/* ─── CTA ─── */}
+        <Reveal>
+          <section className="py-20 sm:py-28">
+            <div className="mx-auto max-w-3xl px-4 text-center">
+              <div className="rounded-2xl border border-border bg-card px-8 py-16 shadow-sm sm:px-16">
+                <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+                  Ready to simplify your feedback?
+                </h2>
+                <p className="mx-auto mt-4 max-w-lg text-muted-foreground">
+                  Stop chasing clients for timestamp corrections. Send one link,
+                  get precise feedback, and ship faster.
+                </p>
+                <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+                  <Link href="/signup">
+                    <Button size="lg" className="gap-2">
+                      Create your free account{" "}
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                  <Link href="/login">
+                    <Button variant="secondary" size="lg">
+                      I already have an account
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </section>
+        </Reveal>
       </main>
 
       {/* ─── Footer ─── */}
