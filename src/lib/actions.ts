@@ -349,7 +349,7 @@ export async function createComment(formData: FormData) {
     content: z.string().min(1, "Comment is required"),
     timestamp: z.coerce.number().min(0),
     parentId: z.coerce.number().optional(),
-    annotations: z.string().optional(),
+    annotations: z.string().nullish(),
   });
 
   const parsed = schema.parse({
@@ -428,7 +428,12 @@ export async function createProjectVersion(
   // Update project's current version and video URL
   await db
     .update(projects)
-    .set({ currentVersion: nextVersion, videoUrl, updatedAt: new Date() })
+    .set({
+      currentVersion: nextVersion,
+      videoUrl,
+      status: "Under Review",
+      updatedAt: new Date(),
+    })
     .where(eq(projects.id, projectId));
 
   revalidatePath(`/projects/${projectId}`);

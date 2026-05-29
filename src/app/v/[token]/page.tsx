@@ -461,6 +461,7 @@ function ReviewVideoSection({
       <CommentInput
         onSubmit={onAddComment}
         defaultName={clientName || undefined}
+        forceVisible
       />
 
       <div className="rounded-xl border border-border bg-card">
