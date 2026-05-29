@@ -225,7 +225,12 @@ export default function ProjectDetailPage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            {project && <ShareLinkCopy shareToken={project.shareToken} />}
+            {project && (
+              <ShareLinkCopy
+                shareToken={project.shareToken}
+                password={project.password}
+              />
+            )}
             <button
               onClick={() => setShowDeleteConfirm(true)}
               className="rounded-lg p-2 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:text-red-400 dark:hover:bg-red-900/20 transition-colors"
