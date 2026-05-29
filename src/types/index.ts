@@ -23,6 +23,13 @@ export interface Comment {
   /** For one-level threaded replies */
   parentId: number | null;
   createdAt: Date;
+  /** JSON array of drawing annotations */
+  annotations?: {
+    type: string;
+    points: { x: number; y: number }[];
+    color: string;
+    strokeWidth: number;
+  }[];
   /** Populated at query time */
   replies?: Comment[];
 }

@@ -8,7 +8,8 @@ import {
 } from "@/components/video/VideoPlayerProvider";
 import { cn } from "@/lib/utils";
 import { NameDropdown, persistName } from "@/components/ui/NameDropdown";
-import { MessageSquarePlus, X } from "lucide-react";
+import { AnnotationCanvas, type Annotation } from "./AnnotationCanvas";
+import { MessageSquarePlus, X, PenLine } from "lucide-react";
 
 const NAME_STORAGE_KEY = "viback-author-name";
 
@@ -18,6 +19,7 @@ export interface CommentInputProps {
     content: string;
     timestamp: number;
     parentId?: number;
+    annotations?: string;
   }) => void;
   parentId?: number;
   className?: string;
@@ -41,6 +43,8 @@ export function CommentInput({
   const [nameError, setNameError] = useState("");
   const [contentError, setContentError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [showCanvas, setShowCanvas] = useState(false);
+  const [annotations, setAnnotations] = useState<Annotation[]>([]);
 
   // Load saved name from localStorage on mount (only for client-side top-level comments)
   useEffect(() => {
@@ -97,10 +101,14 @@ export function CommentInput({
         content: content.trim(),
         timestamp,
         parentId,
+        annotations:
+          annotations.length > 0 ? JSON.stringify(annotations) : undefined,
       });
 
       // Only clear the comment text, keep the name
       setContent("");
+      setAnnotations([]);
+      setShowCanvas(false);
       if (!parentId) {
         cancelComment();
       }
@@ -112,6 +120,25 @@ export function CommentInput({
   // For top-level comments, only show when in commenting mode
   // For replies, always show
   if (!forceVisible && !parentId && !isCommenting) return null;
+
+  // Show annotation canvas instead of form
+  if (showCanvas) {
+    return (
+      <div
+        className={cn("relative rounded-xl overflow-hidden", className)}
+        style={{ aspectRatio: "16/9" }}
+      >
+        <AnnotationCanvas
+          onSave={(anns) => {
+            setAnnotations(anns);
+            setShowCanvas(false);
+          }}
+          onCancel={() => setShowCanvas(false)}
+          className="absolute inset-0"
+        />
+      </div>
+    );
+  }
 
   return (
     <form
@@ -176,16 +203,46 @@ export function CommentInput({
             <p className="text-sm text-red-600">{contentError}</p>
           )}
         </div>
+        {annotations.length > 0 && (
+          <div className="flex items-center gap-2 rounded-lg bg-primary/10 px-3 py-2">
+            <PenLine className="h-3.5 w-3.5 text-primary" />
+            <span className="text-xs text-primary font-medium">
+              {annotations.length} annotation
+              {annotations.length !== 1 ? "s" : ""} attached
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setAnnotations([]);
+                setShowCanvas(false);
+              }}
+              className="ml-auto text-primary/70 hover:text-primary"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
         <div className="flex items-center justify-end gap-2">
           {!parentId && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={cancelComment}
-            >
-              Cancel
-            </Button>
+            <>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowCanvas(true)}
+              >
+                <PenLine className="h-4 w-4 mr-1" />
+                Annotate
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={cancelComment}
+              >
+                Cancel
+              </Button>
+            </>
           )}
           <Button type="submit" size="sm" loading={submitting}>
             {parentId ? "Reply" : "Submit Comment"}

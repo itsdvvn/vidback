@@ -182,6 +182,7 @@ export default function ClientReviewPage({
       authorName: string;
       content: string;
       timestamp: number;
+      annotations?: string;
     }) => {
       const optimistic: Comment = {
         id: Date.now(),
@@ -191,6 +192,7 @@ export default function ClientReviewPage({
         timestamp: data.timestamp,
         isResolved: null,
         parentId: null,
+        annotations: data.annotations ? JSON.parse(data.annotations) : [],
         createdAt: new Date(),
         replies: [],
       };
@@ -205,6 +207,9 @@ export default function ClientReviewPage({
         formData.set("authorName", data.authorName);
         formData.set("content", data.content);
         formData.set("timestamp", String(data.timestamp));
+        if (data.annotations) {
+          formData.set("annotations", data.annotations);
+        }
         await createComment(formData);
       } catch {
         // Rollback on error — refetch from server
@@ -218,7 +223,12 @@ export default function ClientReviewPage({
   const handleReply = useCallback(
     async (
       parentId: number,
-      data: { authorName: string; content: string; timestamp: number },
+      data: {
+        authorName: string;
+        content: string;
+        timestamp: number;
+        annotations?: string;
+      },
     ) => {
       const optimistic: Comment = {
         id: Date.now(),
@@ -228,6 +238,7 @@ export default function ClientReviewPage({
         parentId,
         timestamp: 0,
         isResolved: null,
+        annotations: data.annotations ? JSON.parse(data.annotations) : [],
         createdAt: new Date(),
         replies: [],
       };
@@ -243,6 +254,9 @@ export default function ClientReviewPage({
         formData.set("content", data.content);
         formData.set("timestamp", "0");
         formData.set("parentId", String(parentId));
+        if (data.annotations) {
+          formData.set("annotations", data.annotations);
+        }
         await createComment(formData);
       } catch {
         // Rollback on error — refetch from server
@@ -416,10 +430,16 @@ function ReviewVideoSection({
     authorName: string;
     content: string;
     timestamp: number;
+    annotations?: string;
   }) => Promise<void>;
   onReply?: (
     parentId: number,
-    data: { authorName: string; content: string; timestamp: number },
+    data: {
+      authorName: string;
+      content: string;
+      timestamp: number;
+      annotations?: string;
+    },
   ) => Promise<void>;
   clientName: string;
 }) {

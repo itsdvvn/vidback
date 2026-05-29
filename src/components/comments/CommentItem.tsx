@@ -3,7 +3,7 @@
 import type { Comment } from "@/types";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
-import { Clock, CornerDownRight } from "lucide-react";
+import { Clock, CornerDownRight, PenLine } from "lucide-react";
 
 export interface CommentItemProps {
   comment: Comment;
@@ -68,6 +68,17 @@ export function CommentItem({
       >
         {comment.content}
       </p>
+
+      {/* Annotations badge */}
+      {comment.annotations && comment.annotations.length > 0 && (
+        <div className="mt-2">
+          <Badge variant="info" className="gap-1">
+            <PenLine className="h-3 w-3" />
+            {comment.annotations.length} annotation
+            {comment.annotations.length !== 1 ? "s" : ""}
+          </Badge>
+        </div>
+      )}
 
       {/* Status badge */}
       {isResolved && (

@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { projects, comments, user } from "@/db/schema";
+import { projects, comments, user, projectVersions } from "@/db/schema";
 import { eq, and, isNull, count, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -349,6 +349,7 @@ export async function createComment(formData: FormData) {
     content: z.string().min(1, "Comment is required"),
     timestamp: z.coerce.number().min(0),
     parentId: z.coerce.number().optional(),
+    annotations: z.string().optional(),
   });
 
   const parsed = schema.parse({
@@ -359,6 +360,7 @@ export async function createComment(formData: FormData) {
     parentId: formData.get("parentId")
       ? Number(formData.get("parentId"))
       : undefined,
+    annotations: formData.get("annotations"),
   });
 
   const [project] = await db
@@ -377,11 +379,114 @@ export async function createComment(formData: FormData) {
       content: parsed.content,
       timestamp: parsed.timestamp,
       parentId: parsed.parentId ?? null,
+      annotations: parsed.annotations ? JSON.parse(parsed.annotations) : [],
     })
     .returning();
 
   revalidatePath(`/v/${project.shareToken}`);
   return comment;
+}
+
+// ─── Project Versions ───
+
+export async function createProjectVersion(
+  projectId: string,
+  formData: FormData,
+) {
+  const session = await requireAuth();
+
+  // Verify ownership
+  const [project] = await db
+    .select({
+      editorId: projects.editorId,
+      currentVersion: projects.currentVersion,
+    })
+    .from(projects)
+    .where(eq(projects.id, projectId))
+    .limit(1);
+
+  if (!project) throw new Error("Not found");
+  if (project.editorId !== session.user.id) throw new Error("Forbidden");
+
+  const videoUrl = formData.get("videoUrl") as string;
+  const notes = (formData.get("notes") as string) || "";
+  const storageBytes = Number(formData.get("storageBytes")) || 0;
+
+  const nextVersion = (project.currentVersion || 1) + 1;
+
+  const [version] = await db
+    .insert(projectVersions)
+    .values({
+      projectId,
+      versionNumber: nextVersion,
+      videoUrl,
+      notes,
+      storageBytes,
+    })
+    .returning();
+
+  // Update project's current version and video URL
+  await db
+    .update(projects)
+    .set({ currentVersion: nextVersion, videoUrl, updatedAt: new Date() })
+    .where(eq(projects.id, projectId));
+
+  revalidatePath(`/projects/${projectId}`);
+  return version;
+}
+
+export async function getProjectVersions(projectId: string) {
+  const session = await requireAuth();
+
+  const [project] = await db
+    .select({ editorId: projects.editorId })
+    .from(projects)
+    .where(eq(projects.id, projectId))
+    .limit(1);
+
+  if (!project) throw new Error("Not found");
+  if (project.editorId !== session.user.id) throw new Error("Forbidden");
+
+  return db
+    .select()
+    .from(projectVersions)
+    .where(eq(projectVersions.projectId, projectId))
+    .orderBy(desc(projectVersions.versionNumber));
+}
+
+export async function setCurrentVersion(projectId: string, versionId: string) {
+  const session = await requireAuth();
+
+  const [project] = await db
+    .select({ editorId: projects.editorId })
+    .from(projects)
+    .where(eq(projects.id, projectId))
+    .limit(1);
+
+  if (!project) throw new Error("Not found");
+  if (project.editorId !== session.user.id) throw new Error("Forbidden");
+
+  const [version] = await db
+    .select({
+      videoUrl: projectVersions.videoUrl,
+      versionNumber: projectVersions.versionNumber,
+    })
+    .from(projectVersions)
+    .where(eq(projectVersions.id, versionId))
+    .limit(1);
+
+  if (!version) throw new Error("Version not found");
+
+  await db
+    .update(projects)
+    .set({
+      currentVersion: version.versionNumber,
+      videoUrl: version.videoUrl,
+      updatedAt: new Date(),
+    })
+    .where(eq(projects.id, projectId));
+
+  revalidatePath(`/projects/${projectId}`);
 }
 
 // ─── Thumbnail ───

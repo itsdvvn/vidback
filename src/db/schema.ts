@@ -8,6 +8,7 @@ import {
   boolean,
   integer,
   bigint,
+  jsonb,
 } from "drizzle-orm/pg-core";
 
 // ─── BetterAuth tables ───
@@ -76,6 +77,7 @@ export const projects = pgTable("projects", {
   password: text("password"),
   thumbnailUrl: text("thumbnail_url"),
   storageBytes: bigint("storage_bytes", { mode: "number" }).default(0),
+  currentVersion: integer("current_version").default(1).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -92,6 +94,22 @@ export const comments = pgTable("comments", {
   parentId: integer("parent_id").references((): any => comments.id, {
     onDelete: "cascade",
   }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  annotations: jsonb("annotations").default([]),
+});
+
+// ─── Client Profiles ───
+
+export const projectVersions = pgTable("project_versions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  projectId: uuid("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  versionNumber: integer("version_number").notNull(),
+  videoUrl: text("video_url").notNull(),
+  thumbnailUrl: text("thumbnail_url"),
+  storageBytes: bigint("storage_bytes", { mode: "number" }).default(0),
+  notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

@@ -18,6 +18,7 @@ import {
   RefreshCw,
   Trash2,
   Share2,
+  History,
 } from "lucide-react";
 import {
   getProjectWithCounts,
@@ -32,6 +33,7 @@ import { authClient } from "@/lib/auth-client";
 import { useVideoPlayerActions } from "@/components/video/VideoPlayerProvider";
 import { ToastProvider, toast } from "@/components/ui/Toast";
 import { StatusSelector } from "@/components/dashboard/StatusSelector";
+import { VersionHistory } from "@/components/dashboard/VersionHistory";
 
 export default function ProjectDetailPage() {
   const params = useParams();
@@ -50,6 +52,7 @@ export default function ProjectDetailPage() {
   const prevCommentCountRef = useRef(0);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showShare, setShowShare] = useState(false);
+  const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
@@ -149,7 +152,7 @@ export default function ProjectDetailPage() {
         setComments((prev) =>
           prev.map((c) =>
             c.id === parentId
-              ? { ...c, replies: [...(c.replies || []), reply] }
+              ? { ...c, replies: [...(c.replies || []), reply as Comment] }
               : c,
           ),
         );
@@ -219,7 +222,10 @@ export default function ProjectDetailPage() {
             </Link>
             <div>
               <h1 className="text-xl font-bold text-foreground">
-                {project?.name}
+                {project?.name}{" "}
+                <span className="text-sm font-normal text-muted-foreground">
+                  v{project?.currentVersion}
+                </span>
               </h1>
               <div className="flex items-center gap-2 mt-1">
                 <StatusSelector
@@ -244,6 +250,18 @@ export default function ProjectDetailPage() {
               title="Share project"
             >
               <Share2 className="h-5 w-5" />
+            </button>
+            <button
+              onClick={() => setShowVersionHistory(!showVersionHistory)}
+              className={cn(
+                "rounded-lg p-2 transition-colors",
+                showVersionHistory
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground/70 hover:text-foreground hover:bg-muted",
+              )}
+              title="Version history"
+            >
+              <History className="h-5 w-5" />
             </button>
             <button
               onClick={() => setShowDeleteConfirm(true)}
@@ -297,6 +315,25 @@ export default function ProjectDetailPage() {
               shareToken={project.shareToken}
               password={project.password}
             />
+          </div>
+        )}
+
+        {showVersionHistory && project && (
+          <div className="mb-6">
+            <div className="rounded-xl border border-border bg-card">
+              <div className="flex items-center justify-between border-b border-border px-4 py-3">
+                <h2 className="font-semibold text-sm text-foreground">
+                  Version History
+                </h2>
+              </div>
+              <div className="p-2">
+                <VersionHistory
+                  projectId={project.id}
+                  currentVersion={project.currentVersion}
+                  onVersionChange={fetchData}
+                />
+              </div>
+            </div>
           </div>
         )}
 
