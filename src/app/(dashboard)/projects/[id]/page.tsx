@@ -11,7 +11,14 @@ import { ShareLinkCopy } from "@/components/dashboard/ShareLinkCopy";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/Button";
-import { ArrowLeft, AlertCircle, RefreshCw, Trash2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import {
+  ArrowLeft,
+  AlertCircle,
+  RefreshCw,
+  Trash2,
+  Share2,
+} from "lucide-react";
 import {
   getProjectWithCounts,
   getProjectComments,
@@ -42,6 +49,7 @@ export default function ProjectDetailPage() {
   const [editorName, setEditorName] = useState("");
   const prevCommentCountRef = useRef(0);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showShare, setShowShare] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
@@ -224,13 +232,19 @@ export default function ProjectDetailPage() {
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            {project && (
-              <ShareLinkCopy
-                shareToken={project.shareToken}
-                password={project.password}
-              />
-            )}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowShare(!showShare)}
+              className={cn(
+                "rounded-lg p-2 transition-colors",
+                showShare
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground/70 hover:text-foreground hover:bg-muted",
+              )}
+              title="Share project"
+            >
+              <Share2 className="h-5 w-5" />
+            </button>
             <button
               onClick={() => setShowDeleteConfirm(true)}
               className="rounded-lg p-2 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:text-red-400 dark:hover:bg-red-900/20 transition-colors"
@@ -276,6 +290,15 @@ export default function ProjectDetailPage() {
             </>
           )}
         </div>
+
+        {showShare && project && (
+          <div className="mb-6">
+            <ShareLinkCopy
+              shareToken={project.shareToken}
+              password={project.password}
+            />
+          </div>
+        )}
 
         <VideoPlayerProvider>
           <ProjectVideoSection
