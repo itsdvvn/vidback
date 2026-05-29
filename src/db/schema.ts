@@ -73,6 +73,7 @@ export const projects = pgTable("projects", {
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
   status: text("status").notNull().default("Under Review"),
+  password: text("password"),
   thumbnailUrl: text("thumbnail_url"),
   storageBytes: bigint("storage_bytes", { mode: "number" }).default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -92,4 +93,14 @@ export const comments = pgTable("comments", {
     onDelete: "cascade",
   }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// ─── Client Profiles ───
+
+export const clientProfiles = pgTable("client_profiles", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  name: text("name").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

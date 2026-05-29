@@ -342,105 +342,147 @@ export default function DashboardPage() {
 
       {/* ─── Kanban View ─── */}
       {viewMode === "kanban" && (
-        <div className="flex gap-4 overflow-x-auto pb-4">
-          {STATUSES.map((statusName) => {
-            const columnProjects = projects.filter(
-              (p) => p.status === statusName,
-            );
-            return (
-              <div
-                key={statusName}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  e.currentTarget.classList.add("bg-accent/50");
-                }}
-                onDragLeave={(e) => {
-                  e.currentTarget.classList.remove("bg-accent/50");
-                }}
-                onDrop={async (e) => {
-                  e.preventDefault();
-                  e.currentTarget.classList.remove("bg-accent/50");
-                  const projectId = e.dataTransfer.getData("text/plain");
-                  const newStatus = statusName;
-                  try {
-                    await updateProjectStatus(projectId, newStatus);
-                    fetchProjects();
-                  } catch {
-                    /* ignore */
-                  }
-                }}
-                className="min-w-[260px] flex-shrink-0 rounded-xl border border-border bg-muted/20 p-4"
-              >
-                <div className="mb-3 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={cn(
-                        "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
-                        statusColors[statusName],
-                      )}
-                    >
-                      {statusName}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {columnProjects.length}
-                    </span>
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  {columnProjects.map((project) => (
-                    <div
-                      key={project.id}
-                      draggable
-                      onDragStart={(e) => {
-                        e.dataTransfer.setData("text/plain", project.id);
-                        e.currentTarget.classList.add("opacity-50");
-                      }}
-                      onDragEnd={(e) => {
-                        e.currentTarget.classList.remove("opacity-50");
-                      }}
-                    >
-                      <Link
-                        href={`/projects/${project.id}`}
-                        className="block max-w-[265px] rounded-lg border border-border bg-card p-3 shadow-sm transition-all hover:shadow-md hover:border-primary/30"
-                      >
-                        {project.thumbnailUrl && (
-                          <div className="h-24 rounded-md overflow-hidden bg-muted mb-2">
-                            <img
-                              src={project.thumbnailUrl}
-                              alt=""
-                              className="w-full h-full object-cover"
-                              loading="lazy"
-                            />
-                          </div>
-                        )}
-                        <p className="text-sm font-medium text-foreground truncate">
-                          {project.name}
-                        </p>
-                        <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-                          <span className="inline-flex items-center gap-1">
-                            <MessageSquare className="h-3 w-3" />
-                            {project.commentCount ?? 0}
-                          </span>
-                          {(project.unresolvedCount ?? 0) > 0 && (
-                            <Badge variant="warning">
-                              {project.unresolvedCount} open
-                            </Badge>
-                          )}
-                        </div>
-                      </Link>
-                    </div>
-                  ))}
-                  {columnProjects.length === 0 && (
-                    <p className="text-center text-xs text-muted-foreground py-6">
-                      No projects
-                    </p>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        <KanbanBoard projects={projects} fetchProjects={fetchProjects} />
       )}
+    </div>
+  );
+}
+
+// ─── KanbanBoard (extracted for touch support) ───
+
+function KanbanBoard({
+  projects,
+  fetchProjects,
+}: {
+  projects: ProjectWithCounts[];
+  fetchProjects: () => Promise<void>;
+}) {
+  const [draggedItem, setDraggedItem] = useState<string | null>(null);
+
+  return (
+    <div className="flex gap-4 overflow-x-auto pb-4">
+      {STATUSES.map((statusName) => {
+        const columnProjects = projects.filter((p) => p.status === statusName);
+        return (
+          <div
+            key={statusName}
+            data-status={statusName}
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.currentTarget.classList.add("bg-accent/50");
+            }}
+            onDragLeave={(e) => {
+              e.currentTarget.classList.remove("bg-accent/50");
+            }}
+            onDrop={async (e) => {
+              e.preventDefault();
+              e.currentTarget.classList.remove("bg-accent/50");
+              const projectId = e.dataTransfer.getData("text/plain");
+              const newStatus = statusName;
+              try {
+                await updateProjectStatus(projectId, newStatus);
+                fetchProjects();
+              } catch {
+                /* ignore */
+              }
+            }}
+            className="min-w-[260px] flex-shrink-0 rounded-xl border border-border bg-muted/20 p-4"
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span
+                  className={cn(
+                    "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+                    statusColors[statusName],
+                  )}
+                >
+                  {statusName}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {columnProjects.length}
+                </span>
+              </div>
+            </div>
+            <div className="space-y-3">
+              {columnProjects.map((project) => (
+                <div
+                  key={project.id}
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData("text/plain", project.id);
+                    e.currentTarget.classList.add("opacity-50");
+                  }}
+                  onDragEnd={(e) => {
+                    e.currentTarget.classList.remove("opacity-50");
+                  }}
+                  onTouchStart={(e) => {
+                    const el = e.currentTarget;
+                    setDraggedItem(project.id);
+                    el.style.opacity = "0.5";
+                  }}
+                  onTouchEnd={async (e) => {
+                    const el = e.currentTarget;
+                    el.style.opacity = "1";
+                    const touch = e.changedTouches[0];
+                    const target = document.elementFromPoint(
+                      touch.clientX,
+                      touch.clientY,
+                    ) as HTMLElement | null;
+                    const column = target?.closest("[data-status]");
+                    if (column) {
+                      const newStatus = column.getAttribute("data-status");
+                      if (newStatus && draggedItem) {
+                        try {
+                          await updateProjectStatus(draggedItem, newStatus);
+                          fetchProjects();
+                        } catch {
+                          /* ignore */
+                        }
+                      }
+                    }
+                    setDraggedItem(null);
+                  }}
+                >
+                  <Link
+                    href={`/projects/${project.id}`}
+                    className="block max-w-[265px] rounded-lg border border-border bg-card p-3 shadow-sm transition-all hover:shadow-md hover:border-primary/30"
+                  >
+                    {project.thumbnailUrl && (
+                      <div className="h-24 rounded-md overflow-hidden bg-muted mb-2">
+                        <img
+                          src={project.thumbnailUrl}
+                          alt=""
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                      </div>
+                    )}
+                    <p className="text-sm font-medium text-foreground truncate">
+                      {project.name}
+                    </p>
+                    <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                      <span className="inline-flex items-center gap-1">
+                        <MessageSquare className="h-3 w-3" />
+                        {project.commentCount ?? 0}
+                      </span>
+                      {(project.unresolvedCount ?? 0) > 0 && (
+                        <Badge variant="warning">
+                          {project.unresolvedCount} open
+                        </Badge>
+                      )}
+                    </div>
+                  </Link>
+                </div>
+              ))}
+              {columnProjects.length === 0 && (
+                <p className="text-center text-xs text-muted-foreground py-6">
+                  No projects
+                </p>
+              )}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

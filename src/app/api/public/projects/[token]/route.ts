@@ -10,16 +10,20 @@ export async function GET(
   const { token } = await params;
 
   const [project] = await db
-    .select()
+    .select({
+      id: projects.id,
+      name: projects.name,
+      videoUrl: projects.videoUrl,
+      shareToken: projects.shareToken,
+      thumbnailUrl: projects.thumbnailUrl,
+      createdAt: projects.createdAt,
+    })
     .from(projects)
     .where(eq(projects.shareToken, token))
     .limit(1);
 
   if (!project) {
-    return NextResponse.json(
-      { error: "Project not found" },
-      { status: 404 },
-    );
+    return NextResponse.json({ error: "Project not found" }, { status: 404 });
   }
 
   const allComments = await db

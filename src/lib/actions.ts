@@ -186,6 +186,7 @@ export async function createProject(formData: FormData) {
   });
 
   const shareToken = `${nanoid(4)}-${nanoid(4)}-${nanoid(4)}`;
+  const password = Math.random().toString(36).slice(2, 8);
 
   const [project] = await db
     .insert(projects)
@@ -193,13 +194,14 @@ export async function createProject(formData: FormData) {
       name: parsed.name,
       videoUrl: parsed.videoUrl,
       shareToken,
+      password,
       editorId: session.user.id,
       storageBytes: parsed.storageBytes,
     })
     .returning();
 
   revalidatePath("/dashboard");
-  return project;
+  return { ...project, password };
 }
 
 export async function updateProjectStatus(projectId: string, status: string) {

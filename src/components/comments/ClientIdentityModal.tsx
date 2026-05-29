@@ -108,11 +108,9 @@ export function ClientIdentityModal({ onComplete }: ClientIdentityModalProps) {
 
       // 2. Check server (DB) as fallback
       try {
-        const res = await fetch("/api/client/check", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: trimmed }),
-        });
+        const res = await fetch(
+          `/api/client/lookup?email=${encodeURIComponent(trimmed)}`,
+        );
 
         if (res.ok) {
           const data = (await res.json()) as { found: boolean; name?: string };
@@ -138,7 +136,7 @@ export function ClientIdentityModal({ onComplete }: ClientIdentityModalProps) {
   );
 
   const handleNameSubmit = useCallback(
-    (e: React.FormEvent) => {
+    async (e: React.FormEvent) => {
       e.preventDefault();
       setError("");
 
@@ -149,6 +147,17 @@ export function ClientIdentityModal({ onComplete }: ClientIdentityModalProps) {
       }
 
       const trimmedEmail = email.trim().toLowerCase();
+
+      // Save to DB (fire-and-forget)
+      try {
+        await fetch("/api/client/save", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: trimmedEmail, name: trimmed }),
+        });
+      } catch {
+        // DB save is best-effort; continue anyway
+      }
 
       // Persist mapping and current client
       const clientMap = loadClientMap();

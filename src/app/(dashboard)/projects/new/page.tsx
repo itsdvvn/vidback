@@ -20,6 +20,7 @@ export default function NewProjectPage() {
     id: string;
     name: string;
     shareToken: string;
+    password?: string;
   } | null>(null);
 
   const handleSubmit = async (data: ProjectFormData) => {
@@ -32,11 +33,12 @@ export default function NewProjectPage() {
       formData.set("videoUrl", data.videoUrl);
       formData.set("storageBytes", String(data.fileSize || 0));
 
-      const project = await createProject(formData);
+      const result = await createProject(formData);
       setCreated({
-        id: project.id,
+        id: result.id,
         name: data.name,
-        shareToken: project.shareToken,
+        shareToken: result.shareToken,
+        password: (result as any).password,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create project");
@@ -59,7 +61,10 @@ export default function NewProjectPage() {
             below with your client.
           </p>
           <div className="mt-6">
-            <ShareLinkCopy shareToken={created.shareToken} />
+            <ShareLinkCopy
+              shareToken={created.shareToken}
+              password={created.password}
+            />
           </div>
           <div className="mt-6 flex justify-center gap-3">
             <Button
