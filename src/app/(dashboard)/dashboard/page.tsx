@@ -182,12 +182,57 @@ export default function DashboardPage() {
           title="Create your first project"
           description="Upload a video and share a link with your client to start collecting time-coded feedback."
           action={
-            <Link href="/projects/new">
-              <Button>
-                <Plus className="h-4 w-4" />
-                New Project
-              </Button>
-            </Link>
+            <div className="flex flex-col sm:flex-row items-center gap-3">
+              {showCreateFolder ? (
+                <div
+                  className="flex items-center gap-2"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <input
+                    value={folderName}
+                    onChange={(e) => setFolderName(e.target.value)}
+                    placeholder="Folder name"
+                    className="rounded-lg border border-border bg-background px-3 py-2 text-sm w-40 focus:outline-none focus:ring-2 focus:ring-ring"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleCreateFolder();
+                      if (e.key === "Escape") setShowCreateFolder(false);
+                    }}
+                  />
+                  <Button
+                    size="sm"
+                    onClick={handleCreateFolder}
+                    loading={creatingFolder}
+                  >
+                    Create
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      setShowCreateFolder(false);
+                      setFolderName("");
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  variant="ghost"
+                  onClick={() => setShowCreateFolder(true)}
+                >
+                  <FolderPlus className="h-4 w-4 mr-1" />
+                  New Folder
+                </Button>
+              )}
+              <Link href="/projects/new">
+                <Button>
+                  <Plus className="h-4 w-4" />
+                  New Project
+                </Button>
+              </Link>
+            </div>
           }
         />
       </div>
