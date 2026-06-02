@@ -464,14 +464,16 @@ function ReviewVideoSection({
           />
         </div>
 
-        {/* Comment input + list (right, scrollable) */}
-        <div className="md:flex-1 md:max-h-[calc(100vh-8rem)] md:overflow-y-auto md:sticky md:top-24 space-y-4">
+        {/* Comment input + list (right) */}
+        <div className="md:flex-1 md:sticky md:top-24 md:self-start flex flex-col gap-3">
+          {/* Input stays at the top, always visible */}
           <CommentInput
             onSubmit={onAddComment}
             defaultName={clientName || undefined}
             forceVisible
           />
-          <div className="rounded-xl border border-border bg-card">
+          {/* Comments scroll independently below */}
+          <div className="md:max-h-[calc(100vh-16rem)] md:overflow-y-auto rounded-xl border border-border bg-card">
             <div className="flex items-center justify-between border-b border-border px-4 py-3">
               <h2 className="font-semibold text-sm">
                 Comments ({comments.length})
