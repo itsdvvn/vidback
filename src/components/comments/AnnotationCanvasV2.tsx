@@ -10,7 +10,15 @@ import {
 import { Stage, Layer, Line, Rect, Ellipse, Arrow } from "react-konva";
 import type { Annotation } from "@/components/video/VideoPlayerProvider";
 import { cn } from "@/lib/utils";
-import { X, Undo2, Trash2, Pen, Square, Circle, ArrowUp } from "lucide-react";
+import {
+  X,
+  Undo2,
+  Trash2,
+  Paintbrush,
+  Square,
+  Circle,
+  ArrowUp,
+} from "lucide-react";
 
 interface AnnotationCanvasV2Props {
   width: number;
@@ -144,7 +152,11 @@ export function AnnotationCanvasV2({
         </span>
         {(
           [
-            { type: "freehand" as ToolType, icon: Pen, label: "Freehand" },
+            {
+              type: "freehand" as ToolType,
+              icon: Paintbrush,
+              label: "Freehand",
+            },
             { type: "rectangle" as ToolType, icon: Square, label: "Rectangle" },
             { type: "circle" as ToolType, icon: Circle, label: "Circle" },
             { type: "arrow" as ToolType, icon: ArrowUp, label: "Arrow" },

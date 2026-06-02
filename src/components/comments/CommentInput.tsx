@@ -15,7 +15,7 @@ import {
 import type { Annotation } from "@/components/video/VideoPlayerProvider";
 import { cn } from "@/lib/utils";
 import { NameDropdown, persistName } from "@/components/ui/NameDropdown";
-import { MessageSquarePlus, X, PenLine } from "lucide-react";
+import { MessageSquarePlus, X, Paintbrush } from "lucide-react";
 
 const NAME_STORAGE_KEY = "viback-author-name";
 
@@ -194,7 +194,7 @@ export function CommentInput({
 
         {annotations.length > 0 && (
           <div className="flex items-center gap-2 rounded-lg bg-primary/10 px-3 py-2">
-            <PenLine className="h-3.5 w-3.5 text-primary" />
+            <Paintbrush className="h-3.5 w-3.5 text-primary" />
             <span className="text-xs text-primary font-medium">
               {annotations.length} annotation
               {annotations.length !== 1 ? "s" : ""} attached
@@ -219,7 +219,7 @@ export function CommentInput({
                 onClick={startAnnotation}
                 title="Draw freehand shapes, rectangles, circles and arrows on the video"
               >
-                <PenLine className="h-4 w-4 mr-1" />
+                <Paintbrush className="h-4 w-4 mr-1" />
                 Note Brush
               </Button>
               <Button
