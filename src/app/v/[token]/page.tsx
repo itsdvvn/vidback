@@ -454,23 +454,23 @@ function ReviewVideoSection({
   return (
     <div className="mx-auto max-w-7xl px-4 py-4">
       <div className="flex flex-col md:flex-row gap-4">
-        {/* Video + Comment Input (left, sticky on desktop) */}
-        <div className="md:flex-[2] min-w-0 space-y-4 md:sticky md:top-24 md:self-start">
+        {/* Video only (left, sticky on desktop) */}
+        <div className="md:flex-[2] min-w-0 md:sticky md:top-24 md:self-start">
           <VideoPlayer
             src={
               project?.videoUrl || "https://www.w3schools.com/html/mov_bbb.mp4"
             }
             comments={comments}
           />
+        </div>
+
+        {/* Comment input + list (right, scrollable) */}
+        <div className="md:flex-1 md:max-h-[calc(100vh-8rem)] md:overflow-y-auto md:sticky md:top-24 space-y-4">
           <CommentInput
             onSubmit={onAddComment}
             defaultName={clientName || undefined}
             forceVisible
           />
-        </div>
-
-        {/* Comments (right, scrollable) */}
-        <div className="md:flex-1 md:max-h-[calc(100vh-8rem)] md:overflow-y-auto md:sticky md:top-24">
           <div className="rounded-xl border border-border bg-card">
             <div className="flex items-center justify-between border-b border-border px-4 py-3">
               <h2 className="font-semibold text-sm">
