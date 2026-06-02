@@ -320,7 +320,12 @@ export function VideoPlayer({
           >
             <Layer>
               {activeAnnotation.map((ann, i) => (
-                <AnnotationShape key={i} annotation={ann} />
+                <AnnotationShape
+                  key={i}
+                  annotation={ann}
+                  displayWidth={overlaySize.w}
+                  displayHeight={overlaySize.h}
+                />
               ))}
             </Layer>
           </Stage>

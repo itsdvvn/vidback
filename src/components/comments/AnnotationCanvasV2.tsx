@@ -62,37 +62,49 @@ export function AnnotationCanvasV2({
   const currentPointsRef = useRef<{ x: number; y: number }[]>([]);
   const shapeStartRef = useRef<{ x: number; y: number } | null>(null);
 
-  const handlePointerDown = useCallback((e: any) => {
-    if (e.target !== e.target.getStage()) return;
-    const pos = e.target.getStage()?.getPointerPosition();
-    if (!pos) return;
-    isDrawingRef.current = true;
-    shapeStartRef.current = { x: pos.x, y: pos.y };
-    currentPointsRef.current = [{ x: pos.x, y: pos.y }];
-    setCurrentPoints([{ x: pos.x, y: pos.y }]);
-  }, []);
+  // Normalise a pixel position to 0-1 using the Stage dimensions
+  const norm = useCallback(
+    (p: { x: number; y: number }) => ({
+      x: width > 0 ? p.x / width : 0,
+      y: height > 0 ? p.y / height : 0,
+    }),
+    [width, height],
+  );
+
+  const handlePointerDown = useCallback(
+    (e: any) => {
+      if (e.target !== e.target.getStage()) return;
+      const pos = e.target.getStage()?.getPointerPosition();
+      if (!pos) return;
+      isDrawingRef.current = true;
+      shapeStartRef.current = pos;
+      const n = norm(pos);
+      currentPointsRef.current = [n];
+      setCurrentPoints([n]);
+    },
+    [norm],
+  );
 
   const handlePointerMove = useCallback(
     (e: any) => {
       if (!isDrawingRef.current) return;
       const pos = e.target.getStage()?.getPointerPosition();
       if (!pos) return;
+      const n = norm(pos);
 
       if (tool === "freehand") {
-        currentPointsRef.current = [
-          ...currentPointsRef.current,
-          { x: pos.x, y: pos.y },
-        ];
+        currentPointsRef.current = [...currentPointsRef.current, n];
         setCurrentPoints([...currentPointsRef.current]);
       } else {
         const start = shapeStartRef.current;
         if (start) {
-          currentPointsRef.current = [start, { x: pos.x, y: pos.y }];
-          setCurrentPoints([start, { x: pos.x, y: pos.y }]);
+          const sn = norm(start);
+          currentPointsRef.current = [sn, n];
+          setCurrentPoints([sn, n]);
         }
       }
     },
-    [tool],
+    [tool, norm],
   );
 
   const handlePointerUp = useCallback(() => {
@@ -111,11 +123,13 @@ export function AnnotationCanvasV2({
           points: points.map((p) => ({ x: p.x, y: p.y })),
           color,
           strokeWidth,
+          canvasWidth: width,
+          canvasHeight: height,
         },
       ]);
     }
     setCurrentPoints([]);
-  }, [tool, color]);
+  }, [tool, color, width, height]);
 
   // Sync strokes to provider for auto-save on form submit
   useEffect(() => {
@@ -231,7 +245,12 @@ export function AnnotationCanvasV2({
       >
         <Layer>
           {annotations.map((ann, i) => (
-            <AnnotationShape key={i} annotation={ann} />
+            <AnnotationShape
+              key={i}
+              annotation={ann}
+              displayWidth={width}
+              displayHeight={height}
+            />
           ))}
           {currentPoints.length > 0 && (
             <AnnotationShape
@@ -240,7 +259,11 @@ export function AnnotationCanvasV2({
                 points: currentPoints,
                 color,
                 strokeWidth,
+                canvasWidth: width,
+                canvasHeight: height,
               }}
+              displayWidth={width}
+              displayHeight={height}
             />
           )}
         </Layer>
@@ -249,15 +272,33 @@ export function AnnotationCanvasV2({
   );
 }
 
-/** Renders a single annotation as the appropriate Konva shape. */
-export function AnnotationShape({ annotation }: { annotation: Annotation }) {
+interface AnnotationShapeProps {
+  annotation: Annotation;
+  /** Current display width for scaling 0-1 coords to pixels */
+  displayWidth?: number;
+  /** Current display height for scaling 0-1 coords to pixels */
+  displayHeight?: number;
+}
+
+/** Renders a single annotation as the appropriate Konva shape.
+ *  Coordinates are 0-1 normalised — they are scaled by displayWidth/displayHeight
+ *  when provided, or used as-is for backward compatibility. */
+export function AnnotationShape({
+  annotation,
+  displayWidth,
+  displayHeight,
+}: AnnotationShapeProps) {
   const { type, points, color, strokeWidth } = annotation;
   if (points.length === 0) return null;
+
+  // Scale normalised (0-1) coords to current display dimensions
+  const sx = (nx: number) => (displayWidth ? nx * displayWidth : nx);
+  const sy = (ny: number) => (displayHeight ? ny * displayHeight : ny);
 
   if (type === "freehand") {
     return (
       <Line
-        points={points.flatMap((p) => [p.x, p.y])}
+        points={points.flatMap((p) => [sx(p.x), sy(p.y)])}
         stroke={color}
         strokeWidth={strokeWidth}
         lineCap="round"
@@ -269,10 +310,10 @@ export function AnnotationShape({ annotation }: { annotation: Annotation }) {
   }
 
   if (type === "rectangle" && points.length >= 2) {
-    const x1 = points[0].x,
-      y1 = points[0].y;
-    const x2 = points[points.length - 1].x,
-      y2 = points[points.length - 1].y;
+    const x1 = sx(points[0].x),
+      y1 = sy(points[0].y);
+    const x2 = sx(points[points.length - 1].x),
+      y2 = sy(points[points.length - 1].y);
     return (
       <Rect
         x={Math.min(x1, x2)}
@@ -287,10 +328,10 @@ export function AnnotationShape({ annotation }: { annotation: Annotation }) {
   }
 
   if (type === "circle" && points.length >= 2) {
-    const x1 = points[0].x,
-      y1 = points[0].y;
-    const x2 = points[points.length - 1].x,
-      y2 = points[points.length - 1].y;
+    const x1 = sx(points[0].x),
+      y1 = sy(points[0].y);
+    const x2 = sx(points[points.length - 1].x),
+      y2 = sy(points[points.length - 1].y);
     return (
       <Ellipse
         x={(x1 + x2) / 2}
@@ -305,10 +346,10 @@ export function AnnotationShape({ annotation }: { annotation: Annotation }) {
   }
 
   if (type === "arrow" && points.length >= 2) {
-    const x1 = points[0].x,
-      y1 = points[0].y;
-    const x2 = points[points.length - 1].x,
-      y2 = points[points.length - 1].y;
+    const x1 = sx(points[0].x),
+      y1 = sy(points[0].y);
+    const x2 = sx(points[points.length - 1].x),
+      y2 = sy(points[points.length - 1].y);
     const dx = x2 - x1,
       dy = y2 - y1;
     const angle = Math.atan2(dy, dx);

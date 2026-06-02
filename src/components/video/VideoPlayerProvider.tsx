@@ -12,10 +12,13 @@ import type { Comment } from "@/types";
 
 export interface Annotation {
   type: "freehand" | "rectangle" | "circle" | "arrow";
-  /** Absolute pixel coordinates within the annotation canvas */
+  /** Normalised coordinates (0-1) — divided by canvasWidth/canvasHeight at draw time */
   points: { x: number; y: number }[];
   color: string;
   strokeWidth: number;
+  /** CSS-pixel dimensions of the canvas at draw time (for scaling on display) */
+  canvasWidth: number;
+  canvasHeight: number;
 }
 
 interface VideoPlayerState {
