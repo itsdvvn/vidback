@@ -56,6 +56,10 @@ interface VideoPlayerActions {
   finishAnnotation: (annotations: Annotation[]) => void;
   /** Show saved annotation overlay on the video */
   showAnnotation: (annotations: Annotation[] | null) => void;
+  /** Seek to a timestamp and mark it as annotation-triggered */
+  seekToAnnotation: (time: number) => void;
+  /** Check and clear the annotation seek flag */
+  consumeAnnotationSeek: () => boolean;
 }
 
 const StateContext = createContext<VideoPlayerState | null>(null);
@@ -64,6 +68,7 @@ const ActionsContext = createContext<VideoPlayerActions | null>(null);
 export function VideoPlayerProvider({ children }: { children: ReactNode }) {
   // Store the actual video element in a ref
   const videoElRef = useRef<HTMLVideoElement | null>(null);
+  const annotationSeekRef = useRef(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -190,6 +195,17 @@ export function VideoPlayerProvider({ children }: { children: ReactNode }) {
     cancelAnnotation,
     finishAnnotation,
     showAnnotation,
+    /** Seek to a timestamp and mark it as triggered by an annotation click */
+    seekToAnnotation: (time: number) => {
+      annotationSeekRef.current = true;
+      seek(time);
+    },
+    /** Check and clear the annotation seek flag (used by VideoPlayer) */
+    consumeAnnotationSeek: () => {
+      const val = annotationSeekRef.current;
+      annotationSeekRef.current = false;
+      return val;
+    },
   };
 
   return (

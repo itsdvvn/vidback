@@ -54,6 +54,7 @@ export function VideoPlayer({
     finishAnnotation,
     cancelAnnotation,
     showAnnotation,
+    consumeAnnotationSeek,
   } = useVideoPlayerActions();
 
   // Sync comments into the provider so CustomTimeline shows markers
@@ -178,20 +179,31 @@ export function VideoPlayer({
     registerVideoRef,
   ]);
 
-  // Clear annotation overlay when video starts playing or user seeks
+  // Clear annotation overlay when video starts playing or user manually seeks
+  // (seeks triggered by clicking a comment are flagged via annotationSeekRef
+  //  and do NOT clear the overlay)
   const wasPlayingRef = useRef(false);
   const lastTimeRef = useRef(currentTime);
   useEffect(() => {
     const startedPlaying = isPlaying && !wasPlayingRef.current;
+    const wasAnnotationSeek = consumeAnnotationSeek();
     const didSeek =
-      !startedPlaying && Math.abs(currentTime - lastTimeRef.current) > 0.5;
+      !startedPlaying &&
+      !wasAnnotationSeek &&
+      Math.abs(currentTime - lastTimeRef.current) > 0.5;
     wasPlayingRef.current = isPlaying;
     lastTimeRef.current = currentTime;
 
     if (activeAnnotation && (startedPlaying || didSeek)) {
       showAnnotation(null);
     }
-  }, [isPlaying, currentTime, activeAnnotation, showAnnotation]);
+  }, [
+    isPlaying,
+    currentTime,
+    activeAnnotation,
+    showAnnotation,
+    consumeAnnotationSeek,
+  ]);
 
   // Cleanup retry timer on unmount
   useEffect(() => {

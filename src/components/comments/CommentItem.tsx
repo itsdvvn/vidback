@@ -20,19 +20,20 @@ export function CommentItem({
   onClickThread,
   className,
 }: CommentItemProps) {
-  const { showAnnotation } = useVideoPlayerActions();
+  const { showAnnotation, seekToAnnotation } = useVideoPlayerActions();
   const isResolved = comment.isResolved !== null;
 
   const handleClick = useCallback(() => {
-    onSeek?.(comment.timestamp);
-    // Show annotation overlay when clicking a comment with drawings
     const anns = (comment as any).annotations;
     if (anns && Array.isArray(anns) && anns.length > 0) {
+      // Annotation seek — flagged so the overlay won't be cleared
+      seekToAnnotation(comment.timestamp);
       showAnnotation(anns);
     } else {
+      onSeek?.(comment.timestamp);
       showAnnotation(null);
     }
-  }, [comment, onSeek, showAnnotation]);
+  }, [comment, onSeek, showAnnotation, seekToAnnotation]);
 
   return (
     <div
