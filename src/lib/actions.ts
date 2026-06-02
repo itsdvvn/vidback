@@ -340,6 +340,32 @@ export async function replyToComment(
   return reply;
 }
 
+export async function deleteComment(commentId: number) {
+  const session = await requireAuth();
+
+  const [comment] = await db
+    .select({ projectId: comments.projectId })
+    .from(comments)
+    .where(eq(comments.id, commentId))
+    .limit(1);
+
+  if (!comment) throw new Error("Comment not found");
+
+  // Verify the editor owns the project
+  const [project] = await db
+    .select({ editorId: projects.editorId })
+    .from(projects)
+    .where(eq(projects.id, comment.projectId))
+    .limit(1);
+
+  if (!project || project.editorId !== session.user.id) {
+    throw new Error("Forbidden");
+  }
+
+  await db.delete(comments).where(eq(comments.id, commentId));
+  revalidatePath("/projects/[id]", "page");
+}
+
 // ─── Comments (Public / Client) ───
 
 export async function createComment(formData: FormData) {

@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+  startTransition,
+} from "react";
 import {
   useVideoPlayerState,
   useVideoPlayerActions,
@@ -104,6 +110,8 @@ export function VideoPlayer({
       setStatus("ready");
       detectAspectRatio(el);
       registerVideoRef(el);
+      // Recalculate overlay rect now that video dimensions are known
+      startTransition(() => setOverlayRect(recalcOverlayRect()));
     };
 
     const onTimeUpdate = () => {
@@ -364,6 +372,7 @@ export function VideoPlayer({
                   annotation={ann}
                   displayWidth={overlayRect.width}
                   displayHeight={overlayRect.height}
+                  isActive
                 />
               ))}
             </Layer>

@@ -278,6 +278,8 @@ interface AnnotationShapeProps {
   displayWidth?: number;
   /** Current display height for scaling 0-1 coords to pixels */
   displayHeight?: number;
+  /** When true, adds a semi-transparent fill to make the shape stand out */
+  isActive?: boolean;
 }
 
 /** Renders a single annotation as the appropriate Konva shape.
@@ -287,6 +289,7 @@ export function AnnotationShape({
   annotation,
   displayWidth,
   displayHeight,
+  isActive,
 }: AnnotationShapeProps) {
   const { type, points, color, strokeWidth } = annotation;
   if (points.length === 0) return null;
@@ -294,6 +297,7 @@ export function AnnotationShape({
   // Scale normalised (0-1) coords to current display dimensions
   const sx = (nx: number) => (displayWidth ? nx * displayWidth : nx);
   const sy = (ny: number) => (displayHeight ? ny * displayHeight : ny);
+  const fill = isActive ? color + "33" : undefined; // 20% opacity
 
   if (type === "freehand") {
     return (
@@ -304,6 +308,8 @@ export function AnnotationShape({
         lineCap="round"
         lineJoin="round"
         tension={0.5}
+        closed={false}
+        fill={fill}
         listening={false}
       />
     );
@@ -322,6 +328,7 @@ export function AnnotationShape({
         height={Math.abs(y2 - y1)}
         stroke={color}
         strokeWidth={strokeWidth}
+        fill={fill}
         listening={false}
       />
     );
@@ -340,6 +347,7 @@ export function AnnotationShape({
         radiusY={Math.abs(y2 - y1) / 2}
         stroke={color}
         strokeWidth={strokeWidth}
+        fill={fill}
         listening={false}
       />
     );
@@ -373,6 +381,7 @@ export function AnnotationShape({
         lineCap="round"
         lineJoin="round"
         closed={false}
+        fill={fill}
         listening={false}
       />
     );
