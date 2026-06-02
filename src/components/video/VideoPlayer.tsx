@@ -43,6 +43,7 @@ export function VideoPlayer({
     isAnnotationMode,
     activeAnnotation,
     isPlaying,
+    currentTime,
   } = useVideoPlayerState();
   const {
     setDuration,
@@ -177,15 +178,20 @@ export function VideoPlayer({
     registerVideoRef,
   ]);
 
-  // Cleanup retry timer on unmount
-  // Clear annotation overlay when video starts playing
+  // Clear annotation overlay when video starts playing or user seeks
   const wasPlayingRef = useRef(false);
+  const lastTimeRef = useRef(currentTime);
   useEffect(() => {
-    if (isPlaying && !wasPlayingRef.current) {
+    const startedPlaying = isPlaying && !wasPlayingRef.current;
+    const didSeek =
+      !startedPlaying && Math.abs(currentTime - lastTimeRef.current) > 0.5;
+    wasPlayingRef.current = isPlaying;
+    lastTimeRef.current = currentTime;
+
+    if (activeAnnotation && (startedPlaying || didSeek)) {
       showAnnotation(null);
     }
-    wasPlayingRef.current = isPlaying;
-  }, [isPlaying, showAnnotation]);
+  }, [isPlaying, currentTime, activeAnnotation, showAnnotation]);
 
   // Cleanup retry timer on unmount
   useEffect(() => {
