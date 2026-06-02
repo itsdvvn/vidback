@@ -452,10 +452,10 @@ function ReviewVideoSection({
   );
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-4">
-      <div className="flex flex-col md:flex-row gap-4">
-        {/* Video only (left, sticky on desktop) */}
-        <div className="md:flex-[2] min-w-0 md:sticky md:top-24 md:self-start">
+    <div className="mx-auto max-w-7xl px-4 py-4 md:h-screen md:overflow-hidden">
+      <div className="flex flex-col md:flex-row gap-4 md:h-full">
+        {/* Video only (left) */}
+        <div className="md:flex-[2] min-w-0">
           <VideoPlayer
             src={
               project?.videoUrl || "https://www.w3schools.com/html/mov_bbb.mp4"
@@ -465,15 +465,15 @@ function ReviewVideoSection({
         </div>
 
         {/* Comment input + list (right) */}
-        <div className="md:flex-1 md:sticky md:top-24 md:self-start flex flex-col gap-3">
+        <div className="md:flex-1 md:h-full flex flex-col gap-3 min-h-0">
           {/* Input stays at the top, always visible */}
           <CommentInput
             onSubmit={onAddComment}
             defaultName={clientName || undefined}
             forceVisible
           />
-          {/* Comments scroll independently below */}
-          <div className="md:max-h-[calc(100vh-16rem)] md:overflow-y-auto rounded-xl border border-border bg-card">
+          {/* Comments scroll below */}
+          <div className="flex-1 min-h-0 md:overflow-y-auto rounded-xl border border-border bg-card">
             <div className="flex items-center justify-between border-b border-border px-4 py-3">
               <h2 className="font-semibold text-sm">
                 Comments ({comments.length})

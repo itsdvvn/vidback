@@ -113,6 +113,9 @@ export function CommentInput({
     if (isAnnotationMode) {
       const liveStrokes = getLiveAnnotationStrokes();
       if (liveStrokes.length > 0) {
+        // Set local state directly (not via annotationResult effect)
+        // to avoid race on the synchronous onSubmit call below
+        setAnnotations(liveStrokes);
         finishAnnotation(liveStrokes);
       } else {
         cancelAnnotation();
