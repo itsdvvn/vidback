@@ -29,6 +29,8 @@ interface VideoPlayerState {
   isAnnotationMode: boolean;
   /** Annotation data received from the canvas after save */
   annotationResult: Annotation[] | null;
+  /** Annotation overlay shown on the video when a saved comment is clicked */
+  activeAnnotation: Annotation[] | null;
 }
 
 interface VideoPlayerActions {
@@ -52,6 +54,8 @@ interface VideoPlayerActions {
   cancelAnnotation: () => void;
   /** Save annotations and exit mode */
   finishAnnotation: (annotations: Annotation[]) => void;
+  /** Show saved annotation overlay on the video */
+  showAnnotation: (annotations: Annotation[] | null) => void;
 }
 
 const StateContext = createContext<VideoPlayerState | null>(null);
@@ -68,6 +72,9 @@ export function VideoPlayerProvider({ children }: { children: ReactNode }) {
   const [frozenTimestamp, setFrozenTimestamp] = useState<number | null>(null);
   const [isAnnotationMode, setIsAnnotationMode] = useState(false);
   const [annotationResult, setAnnotationResult] = useState<Annotation[] | null>(
+    null,
+  );
+  const [activeAnnotation, setActiveAnnotation] = useState<Annotation[] | null>(
     null,
   );
 
@@ -149,6 +156,10 @@ export function VideoPlayerProvider({ children }: { children: ReactNode }) {
     setIsAnnotationMode(false);
   }, []);
 
+  const showAnnotation = useCallback((annotations: Annotation[] | null) => {
+    setActiveAnnotation(annotations);
+  }, []);
+
   const state: VideoPlayerState = {
     currentTime,
     duration,
@@ -158,6 +169,7 @@ export function VideoPlayerProvider({ children }: { children: ReactNode }) {
     frozenTimestamp,
     isAnnotationMode,
     annotationResult,
+    activeAnnotation,
   };
 
   const actions: VideoPlayerActions = {
@@ -177,6 +189,7 @@ export function VideoPlayerProvider({ children }: { children: ReactNode }) {
     startAnnotation,
     cancelAnnotation,
     finishAnnotation,
+    showAnnotation,
   };
 
   return (

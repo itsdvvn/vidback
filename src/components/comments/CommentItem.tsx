@@ -1,9 +1,11 @@
 "use client";
 
+import { useCallback } from "react";
 import type { Comment } from "@/types";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
 import { Clock, CornerDownRight, PenLine } from "lucide-react";
+import { useVideoPlayerActions } from "@/components/video/VideoPlayerProvider";
 
 export interface CommentItemProps {
   comment: Comment;
@@ -18,7 +20,19 @@ export function CommentItem({
   onClickThread,
   className,
 }: CommentItemProps) {
+  const { showAnnotation } = useVideoPlayerActions();
   const isResolved = comment.isResolved !== null;
+
+  const handleClick = useCallback(() => {
+    onSeek?.(comment.timestamp);
+    // Show annotation overlay when clicking a comment with drawings
+    const anns = (comment as any).annotations;
+    if (anns && Array.isArray(anns) && anns.length > 0) {
+      showAnnotation(anns);
+    } else {
+      showAnnotation(null);
+    }
+  }, [comment, onSeek, showAnnotation]);
 
   return (
     <div
@@ -28,7 +42,7 @@ export function CommentItem({
         onSeek && "cursor-pointer hover:border-primary/30",
         className,
       )}
-      onClick={() => onSeek?.(comment.timestamp)}
+      onClick={handleClick}
     >
       {/* Header */}
       <div className="mb-1.5 flex items-center justify-between gap-2">

@@ -7,7 +7,11 @@ import {
 } from "./VideoPlayerProvider";
 import { CustomTimeline } from "./CustomTimeline";
 import { PlaybackControls } from "./PlaybackControls";
-import { AnnotationCanvasV2 } from "@/components/comments/AnnotationCanvasV2";
+import {
+  AnnotationCanvasV2,
+  AnnotationShape,
+} from "@/components/comments/AnnotationCanvasV2";
+import { Stage, Layer } from "react-konva";
 import { cn } from "@/lib/utils";
 import { AlertTriangle, Loader } from "lucide-react";
 import type { Comment } from "@/types";
@@ -33,8 +37,13 @@ export function VideoPlayer({
     w: number;
     h: number;
   } | null>(null);
-  const { isCommenting, frozenTimestamp, isAnnotationMode } =
-    useVideoPlayerState();
+  const {
+    isCommenting,
+    frozenTimestamp,
+    isAnnotationMode,
+    activeAnnotation,
+    isPlaying,
+  } = useVideoPlayerState();
   const {
     setDuration,
     setCurrentTime,
@@ -43,6 +52,7 @@ export function VideoPlayer({
     setComments,
     finishAnnotation,
     cancelAnnotation,
+    showAnnotation,
   } = useVideoPlayerActions();
 
   // Sync comments into the provider so CustomTimeline shows markers
@@ -168,6 +178,16 @@ export function VideoPlayer({
   ]);
 
   // Cleanup retry timer on unmount
+  // Clear annotation overlay when video starts playing
+  const wasPlayingRef = useRef(false);
+  useEffect(() => {
+    if (isPlaying && !wasPlayingRef.current) {
+      showAnnotation(null);
+    }
+    wasPlayingRef.current = isPlaying;
+  }, [isPlaying, showAnnotation]);
+
+  // Cleanup retry timer on unmount
   useEffect(() => {
     return () => {
       if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
@@ -271,6 +291,26 @@ export function VideoPlayer({
             className="absolute inset-0 z-10"
             style={{ position: "absolute", left: 0, top: 0 }}
           />
+        )}
+
+        {/* Read-only annotation overlay for saved comments */}
+        {activeAnnotation && activeAnnotation.length > 0 && overlaySize && (
+          <Stage
+            width={overlaySize.w}
+            height={overlaySize.h}
+            style={{
+              position: "absolute",
+              left: 0,
+              top: 0,
+              pointerEvents: "none",
+            }}
+          >
+            <Layer>
+              {activeAnnotation.map((ann, i) => (
+                <AnnotationShape key={i} annotation={ann} />
+              ))}
+            </Layer>
+          </Stage>
         )}
       </div>
 

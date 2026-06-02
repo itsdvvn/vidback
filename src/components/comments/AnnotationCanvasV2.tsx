@@ -1,6 +1,12 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect, type CSSProperties } from "react";
+import {
+  useState,
+  useCallback,
+  useRef,
+  useEffect,
+  type CSSProperties,
+} from "react";
 import { Stage, Layer, Line, Rect, Ellipse, Arrow } from "react-konva";
 import type { Annotation } from "@/components/video/VideoPlayerProvider";
 import { cn } from "@/lib/utils";
@@ -16,8 +22,13 @@ interface AnnotationCanvasV2Props {
 }
 
 const COLORS = [
-  "#ff0000", "#ffa500", "#ffff00", "#00ff00",
-  "#00bfff", "#ff00ff", "#ffffff",
+  "#ff0000",
+  "#ffa500",
+  "#ffff00",
+  "#00ff00",
+  "#00bfff",
+  "#ff00ff",
+  "#ffffff",
 ];
 const DEFAULT_COLOR = "#ff0000";
 
@@ -39,7 +50,9 @@ export function AnnotationCanvasV2({
   const [isDrawing, setIsDrawing] = useState(false);
 
   // Current stroke being drawn (freehand points or shape anchor)
-  const [currentPoints, setCurrentPoints] = useState<{ x: number; y: number }[]>([]);
+  const [currentPoints, setCurrentPoints] = useState<
+    { x: number; y: number }[]
+  >([]);
   const isDrawingRef = useRef(false);
   const currentPointsRef = useRef<{ x: number; y: number }[]>([]);
 
@@ -77,7 +90,10 @@ export function AnnotationCanvasV2({
       if (!pos) return;
 
       if (tool === "freehand") {
-        currentPointsRef.current = [...currentPointsRef.current, { x: pos.x, y: pos.y }];
+        currentPointsRef.current = [
+          ...currentPointsRef.current,
+          { x: pos.x, y: pos.y },
+        ];
         setCurrentPoints([...currentPointsRef.current]);
       } else {
         // For shapes: points[0] = start, points[1..] = current pointer
@@ -133,7 +149,10 @@ export function AnnotationCanvasV2({
         ).map((t) => (
           <button
             key={t.type}
-            onMouseDown={(e) => { e.stopPropagation(); setTool(t.type); }}
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              setTool(t.type);
+            }}
             className={cn(
               "rounded p-1.5 transition-colors",
               tool === t.type
@@ -148,7 +167,10 @@ export function AnnotationCanvasV2({
         {COLORS.map((c) => (
           <button
             key={c}
-            onMouseDown={(e) => { e.stopPropagation(); setColor(c); }}
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              setColor(c);
+            }}
             className={cn(
               "h-5 w-5 rounded-full border-2 transition-all",
               color === c ? "border-white scale-110" : "border-transparent",
@@ -158,14 +180,20 @@ export function AnnotationCanvasV2({
         ))}
         <div className="w-px h-5 bg-white/20 mx-1" />
         <button
-          onMouseDown={(e) => { e.stopPropagation(); undo(); }}
+          onMouseDown={(e) => {
+            e.stopPropagation();
+            undo();
+          }}
           disabled={annotations.length === 0}
           className="rounded p-1.5 text-white/60 hover:text-white hover:bg-white/10 disabled:opacity-30"
         >
           <Undo2 className="h-4 w-4" />
         </button>
         <button
-          onMouseDown={(e) => { e.stopPropagation(); clearAll(); }}
+          onMouseDown={(e) => {
+            e.stopPropagation();
+            clearAll();
+          }}
           disabled={annotations.length === 0}
           className="rounded p-1.5 text-white/60 hover:text-white hover:bg-white/10 disabled:opacity-30"
         >
@@ -204,13 +232,19 @@ export function AnnotationCanvasV2({
       {/* Bottom actions */}
       <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2">
         <button
-          onMouseDown={(e) => { e.stopPropagation(); onCancel(); }}
+          onMouseDown={(e) => {
+            e.stopPropagation();
+            onCancel();
+          }}
           className="rounded-lg bg-black/60 px-3 py-1.5 text-xs text-white hover:bg-black/80 transition-colors"
         >
           <X className="h-3.5 w-3.5 inline mr-1" /> Cancel
         </button>
         <button
-          onMouseDown={(e) => { e.stopPropagation(); onSave(annotations); }}
+          onMouseDown={(e) => {
+            e.stopPropagation();
+            onSave(annotations);
+          }}
           className="rounded-lg bg-primary px-3 py-1.5 text-xs text-white hover:bg-primary/90 transition-colors"
         >
           Save & Comment
@@ -221,7 +255,7 @@ export function AnnotationCanvasV2({
 }
 
 /** Renders a single annotation as the appropriate Konva shape. */
-function AnnotationShape({ annotation }: { annotation: Annotation }) {
+export function AnnotationShape({ annotation }: { annotation: Annotation }) {
   const { type, points, color, strokeWidth } = annotation;
 
   if (points.length === 0) return null;
@@ -241,8 +275,10 @@ function AnnotationShape({ annotation }: { annotation: Annotation }) {
   }
 
   if (type === "rectangle" && points.length >= 2) {
-    const x1 = points[0].x, y1 = points[0].y;
-    const x2 = points[points.length - 1].x, y2 = points[points.length - 1].y;
+    const x1 = points[0].x,
+      y1 = points[0].y;
+    const x2 = points[points.length - 1].x,
+      y2 = points[points.length - 1].y;
     return (
       <Rect
         x={Math.min(x1, x2)}
@@ -257,8 +293,10 @@ function AnnotationShape({ annotation }: { annotation: Annotation }) {
   }
 
   if (type === "circle" && points.length >= 2) {
-    const x1 = points[0].x, y1 = points[0].y;
-    const x2 = points[points.length - 1].x, y2 = points[points.length - 1].y;
+    const x1 = points[0].x,
+      y1 = points[0].y;
+    const x2 = points[points.length - 1].x,
+      y2 = points[points.length - 1].y;
     return (
       <Ellipse
         x={(x1 + x2) / 2}
@@ -273,17 +311,23 @@ function AnnotationShape({ annotation }: { annotation: Annotation }) {
   }
 
   if (type === "arrow" && points.length >= 2) {
-    const x1 = points[0].x, y1 = points[0].y;
-    const x2 = points[points.length - 1].x, y2 = points[points.length - 1].y;
-    const dx = x2 - x1, dy = y2 - y1;
+    const x1 = points[0].x,
+      y1 = points[0].y;
+    const x2 = points[points.length - 1].x,
+      y2 = points[points.length - 1].y;
+    const dx = x2 - x1,
+      dy = y2 - y1;
     const angle = Math.atan2(dy, dx);
     const headLen = Math.min(15, Math.sqrt(dx * dx + dy * dy) * 0.3);
     const arrowPoints = [
-      x1, y1,
-      x2, y2,
+      x1,
+      y1,
+      x2,
+      y2,
       x2 - headLen * Math.cos(angle - Math.PI / 6),
       y2 - headLen * Math.sin(angle - Math.PI / 6),
-      x2, y2,
+      x2,
+      y2,
       x2 - headLen * Math.cos(angle + Math.PI / 6),
       y2 - headLen * Math.sin(angle + Math.PI / 6),
     ];
