@@ -10,6 +10,14 @@ import {
 } from "react";
 import type { Comment } from "@/types";
 
+export interface Annotation {
+  type: "freehand" | "rectangle" | "circle" | "arrow";
+  /** Absolute pixel coordinates within the annotation canvas */
+  points: { x: number; y: number }[];
+  color: string;
+  strokeWidth: number;
+}
+
 interface VideoPlayerState {
   currentTime: number;
   duration: number;
@@ -17,6 +25,10 @@ interface VideoPlayerState {
   comments: Comment[];
   isCommenting: boolean;
   frozenTimestamp: number | null;
+  /** Whether the annotation drawing mode is active */
+  isAnnotationMode: boolean;
+  /** Annotation data received from the canvas after save */
+  annotationResult: Annotation[] | null;
 }
 
 interface VideoPlayerActions {
@@ -34,6 +46,12 @@ interface VideoPlayerActions {
   setIsPlaying: (playing: boolean) => void;
   /** Called by VideoPlayer to connect the real <video> element */
   registerVideoRef: (el: HTMLVideoElement | null) => void;
+  /** Enter annotation drawing mode */
+  startAnnotation: () => void;
+  /** Exit annotation mode without saving */
+  cancelAnnotation: () => void;
+  /** Save annotations and exit mode */
+  finishAnnotation: (annotations: Annotation[]) => void;
 }
 
 const StateContext = createContext<VideoPlayerState | null>(null);
@@ -48,6 +66,10 @@ export function VideoPlayerProvider({ children }: { children: ReactNode }) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [isCommenting, setIsCommenting] = useState(false);
   const [frozenTimestamp, setFrozenTimestamp] = useState<number | null>(null);
+  const [isAnnotationMode, setIsAnnotationMode] = useState(false);
+  const [annotationResult, setAnnotationResult] = useState<Annotation[] | null>(
+    null,
+  );
 
   // Called by VideoPlayer on mount to connect the real element
   const registerVideoRef = useCallback((el: HTMLVideoElement | null) => {
@@ -74,12 +96,15 @@ export function VideoPlayerProvider({ children }: { children: ReactNode }) {
     }
   }, [getVideo]);
 
-  const seek = useCallback((time: number) => {
-    const el = getVideo();
-    if (!el) return;
-    el.currentTime = Math.max(0, Math.min(time, el.duration || 0));
-    setCurrentTime(el.currentTime);
-  }, [getVideo]);
+  const seek = useCallback(
+    (time: number) => {
+      const el = getVideo();
+      if (!el) return;
+      el.currentTime = Math.max(0, Math.min(time, el.duration || 0));
+      setCurrentTime(el.currentTime);
+    },
+    [getVideo],
+  );
 
   const rewind10 = useCallback(() => {
     const el = getVideo();
@@ -109,6 +134,21 @@ export function VideoPlayerProvider({ children }: { children: ReactNode }) {
     setFrozenTimestamp(null);
   }, []);
 
+  const startAnnotation = useCallback(() => {
+    setAnnotationResult(null);
+    setIsAnnotationMode(true);
+  }, []);
+
+  const cancelAnnotation = useCallback(() => {
+    setIsAnnotationMode(false);
+    setAnnotationResult(null);
+  }, []);
+
+  const finishAnnotation = useCallback((annotations: Annotation[]) => {
+    setAnnotationResult(annotations);
+    setIsAnnotationMode(false);
+  }, []);
+
   const state: VideoPlayerState = {
     currentTime,
     duration,
@@ -116,6 +156,8 @@ export function VideoPlayerProvider({ children }: { children: ReactNode }) {
     comments,
     isCommenting,
     frozenTimestamp,
+    isAnnotationMode,
+    annotationResult,
   };
 
   const actions: VideoPlayerActions = {
@@ -132,6 +174,9 @@ export function VideoPlayerProvider({ children }: { children: ReactNode }) {
     setCurrentTime,
     setIsPlaying,
     registerVideoRef,
+    startAnnotation,
+    cancelAnnotation,
+    finishAnnotation,
   };
 
   return (
@@ -146,7 +191,9 @@ export function VideoPlayerProvider({ children }: { children: ReactNode }) {
 export function useVideoPlayerState() {
   const ctx = useContext(StateContext);
   if (!ctx)
-    throw new Error("useVideoPlayerState must be used within VideoPlayerProvider");
+    throw new Error(
+      "useVideoPlayerState must be used within VideoPlayerProvider",
+    );
   return ctx;
 }
 

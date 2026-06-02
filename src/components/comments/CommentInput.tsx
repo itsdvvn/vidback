@@ -12,9 +12,10 @@ import {
   useVideoPlayerState,
   useVideoPlayerActions,
 } from "@/components/video/VideoPlayerProvider";
+import type { Annotation } from "@/components/video/VideoPlayerProvider";
 import { cn } from "@/lib/utils";
 import { NameDropdown, persistName } from "@/components/ui/NameDropdown";
-import { MessageSquarePlus, X } from "lucide-react";
+import { MessageSquarePlus, X, PenLine } from "lucide-react";
 
 const NAME_STORAGE_KEY = "viback-author-name";
 
@@ -24,6 +25,7 @@ export interface CommentInputProps {
     content: string;
     timestamp: number;
     parentId?: number;
+    annotations?: string;
   }) => void;
   parentId?: number;
   className?: string;
@@ -39,27 +41,36 @@ export function CommentInput({
   forceVisible = false,
   defaultName,
 }: CommentInputProps) {
-  const { frozenTimestamp, isCommenting, currentTime } = useVideoPlayerState();
-  const { cancelComment } = useVideoPlayerActions();
+  const { frozenTimestamp, isCommenting, currentTime, annotationResult } =
+    useVideoPlayerState();
+  const { cancelComment, startAnnotation } = useVideoPlayerActions();
 
   const [authorName, setAuthorName] = useState(defaultName || "");
   const [content, setContent] = useState("");
   const [nameError, setNameError] = useState("");
   const [contentError, setContentError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [annotations, setAnnotations] = useState<Annotation[]>([]);
 
   // Load saved name from localStorage on mount (only for client-side top-level comments)
   useEffect(() => {
-    if (defaultName) return; // editor replies use the provided name
+    if (defaultName) return;
     try {
       const saved = localStorage.getItem(NAME_STORAGE_KEY);
       if (saved) startTransition(() => setAuthorName(saved));
     } catch {
-      // localStorage unavailable (SSR, private browsing, etc.)
+      // ignore
     }
-  }, [defaultName]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // Persist name to the dropdown's name list too
+  // Receive annotation result from the Konva canvas overlay
+  useEffect(() => {
+    if (annotationResult && annotationResult.length > 0) {
+      startTransition(() => setAnnotations(annotationResult));
+    }
+  }, [annotationResult]);
+
   const handleNameConfirm = useCallback((name: string) => {
     persistName(name);
   }, []);
@@ -70,7 +81,6 @@ export function CommentInput({
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
-    // Use defaultName when provided (editor replies), otherwise use the input field
     const effectiveName = defaultName || authorName.trim();
 
     let valid = true;
@@ -90,7 +100,6 @@ export function CommentInput({
 
     setSubmitting(true);
     try {
-      // Persist the name (only for client-side comments)
       if (!defaultName && effectiveName) {
         try {
           localStorage.setItem(NAME_STORAGE_KEY, effectiveName);
@@ -104,10 +113,12 @@ export function CommentInput({
         content: content.trim(),
         timestamp,
         parentId,
+        annotations:
+          annotations.length > 0 ? JSON.stringify(annotations) : undefined,
       });
 
-      // Only clear the comment text, keep the name
       setContent("");
+      setAnnotations([]);
       if (!parentId) {
         cancelComment();
       }
@@ -116,8 +127,6 @@ export function CommentInput({
     }
   };
 
-  // For top-level comments, only show when in commenting mode
-  // For replies, always show
   if (!forceVisible && !parentId && !isCommenting) return null;
 
   return (
@@ -142,7 +151,6 @@ export function CommentInput({
       )}
 
       <div className="flex flex-col gap-3">
-        {/* Name field — hidden when defaultName is provided (client identity or editor replies) */}
         {!defaultName && (
           <NameDropdown
             value={authorName}
@@ -183,16 +191,45 @@ export function CommentInput({
             <p className="text-sm text-red-600">{contentError}</p>
           )}
         </div>
+
+        {annotations.length > 0 && (
+          <div className="flex items-center gap-2 rounded-lg bg-primary/10 px-3 py-2">
+            <PenLine className="h-3.5 w-3.5 text-primary" />
+            <span className="text-xs text-primary font-medium">
+              {annotations.length} annotation
+              {annotations.length !== 1 ? "s" : ""} attached
+            </span>
+            <button
+              type="button"
+              onClick={() => setAnnotations([])}
+              className="ml-auto text-primary/70 hover:text-primary"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
+
         <div className="flex items-center justify-end gap-2">
           {!parentId && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={cancelComment}
-            >
-              Cancel
-            </Button>
+            <>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={startAnnotation}
+              >
+                <PenLine className="h-4 w-4 mr-1" />
+                Annotate
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={cancelComment}
+              >
+                Cancel
+              </Button>
+            </>
           )}
           <Button type="submit" size="sm" loading={submitting}>
             {parentId ? "Reply" : "Submit Comment"}

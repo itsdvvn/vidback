@@ -7,9 +7,11 @@ import {
 } from "./VideoPlayerProvider";
 import { CustomTimeline } from "./CustomTimeline";
 import { PlaybackControls } from "./PlaybackControls";
+import { AnnotationCanvasV2 } from "@/components/comments/AnnotationCanvasV2";
 import { cn } from "@/lib/utils";
 import { AlertTriangle, Loader } from "lucide-react";
 import type { Comment } from "@/types";
+import type { Annotation } from "./VideoPlayerProvider";
 
 export interface VideoPlayerProps {
   src: string;
@@ -26,13 +28,21 @@ export function VideoPlayer({
   comments,
 }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const { isCommenting, frozenTimestamp } = useVideoPlayerState();
+  const videoBoxRef = useRef<HTMLDivElement>(null);
+  const [overlaySize, setOverlaySize] = useState<{
+    w: number;
+    h: number;
+  } | null>(null);
+  const { isCommenting, frozenTimestamp, isAnnotationMode } =
+    useVideoPlayerState();
   const {
     setDuration,
     setCurrentTime,
     setIsPlaying,
     registerVideoRef,
     setComments,
+    finishAnnotation,
+    cancelAnnotation,
   } = useVideoPlayerActions();
 
   // Sync comments into the provider so CustomTimeline shows markers
@@ -160,11 +170,29 @@ export function VideoPlayer({
   // Cleanup retry timer on unmount
   useEffect(() => {
     return () => {
-      if (retryTimerRef.current) {
-        clearTimeout(retryTimerRef.current);
-      }
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
     };
   }, []);
+
+  // Measure container size when annotation mode activates
+  useEffect(() => {
+    if (!isAnnotationMode) {
+      setOverlaySize(null);
+      return;
+    }
+    const update = () => {
+      const box = videoBoxRef.current;
+      if (!box) return;
+      const w = box.clientWidth;
+      const h = box.clientHeight;
+      if (w > 0 && h > 0) setOverlaySize({ w, h });
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    const box = videoBoxRef.current;
+    if (box) ro.observe(box);
+    return () => ro.disconnect();
+  }, [isAnnotationMode]);
 
   return (
     <div className={cn("group relative w-full", className)}>
@@ -220,17 +248,31 @@ export function VideoPlayer({
         </div>
       )}
 
-      <video
-        ref={videoRef}
-        src={src}
-        className={cn(
-          "w-full rounded-t-xl bg-black object-contain",
-          aspectClass,
+      <div ref={videoBoxRef} className="relative">
+        <video
+          ref={videoRef}
+          src={src}
+          className={cn(
+            "w-full rounded-t-xl bg-black object-contain",
+            aspectClass,
+          )}
+          preload="metadata"
+          playsInline
+          controls={false}
+        />
+
+        {/* Annotation canvas overlay */}
+        {isAnnotationMode && overlaySize && (
+          <AnnotationCanvasV2
+            width={overlaySize.w}
+            height={overlaySize.h}
+            onSave={(anns: Annotation[]) => finishAnnotation(anns)}
+            onCancel={() => cancelAnnotation()}
+            className="absolute inset-0 z-10"
+            style={{ position: "absolute", left: 0, top: 0 }}
+          />
         )}
-        preload="metadata"
-        playsInline
-        controls={false}
-      />
+      </div>
 
       <PlaybackControls showCommentButton={showCommentButton} />
       <CustomTimeline />
