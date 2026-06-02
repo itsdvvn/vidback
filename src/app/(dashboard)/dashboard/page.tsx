@@ -253,14 +253,47 @@ export default function DashboardPage() {
               </button>
             ))}
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowCreateFolder(true)}
-          >
-            <FolderPlus className="h-4 w-4 mr-1" />
-            New Folder
-          </Button>
+          {showCreateFolder ? (
+            <div className="flex items-center gap-2">
+              <input
+                value={folderName}
+                onChange={(e) => setFolderName(e.target.value)}
+                placeholder="Folder name"
+                className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm w-40 focus:outline-none focus:ring-2 focus:ring-ring"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleCreateFolder();
+                  if (e.key === "Escape") setShowCreateFolder(false);
+                }}
+              />
+              <Button
+                size="sm"
+                onClick={handleCreateFolder}
+                loading={creatingFolder}
+              >
+                Create
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setShowCreateFolder(false);
+                  setFolderName("");
+                }}
+              >
+                Cancel
+              </Button>
+            </div>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowCreateFolder(true)}
+            >
+              <FolderPlus className="h-4 w-4 mr-1" />
+              New Folder
+            </Button>
+          )}
           <Link href="/projects/new">
             <Button>
               <Plus className="h-4 w-4" />
