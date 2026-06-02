@@ -59,16 +59,7 @@ Each row in the `projects` table IS a single version (v1, v2, ...).
 No intermediate project abstraction — folders contain versions directly.
 The `project_versions` table can be removed or repurposed later.
 
-```
-User
- └── Dashboard
-      ├── 📁 Folder A (shared)
-      │    ├── 🎬 v1 — Client Brand Video
-      │    └── 🎬 v2 — Product Launch Update
-      ├── 📁 Folder B (private)
-      │    └── 🎬 v1 — Internal Training
-      └── 🎬 Unfiled (no folder)
-```
+
 
 ---
 
