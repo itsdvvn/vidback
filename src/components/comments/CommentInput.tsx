@@ -35,7 +35,7 @@ export function CommentInput({
   forceVisible = false,
   defaultName,
 }: CommentInputProps) {
-  const { frozenTimestamp, isCommenting } = useVideoPlayerState();
+  const { frozenTimestamp, isCommenting, currentTime } = useVideoPlayerState();
   const { cancelComment } = useVideoPlayerActions();
 
   const [authorName, setAuthorName] = useState(defaultName || "");
@@ -62,7 +62,8 @@ export function CommentInput({
     persistName(name);
   }, []);
 
-  const timestamp = parentId ? (frozenTimestamp ?? 0) : (frozenTimestamp ?? 0);
+  const timestamp =
+    isCommenting && frozenTimestamp !== null ? frozenTimestamp : currentTime;
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
