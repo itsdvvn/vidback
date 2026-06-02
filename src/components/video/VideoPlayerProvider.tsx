@@ -34,6 +34,8 @@ interface VideoPlayerState {
   annotationResult: Annotation[] | null;
   /** Annotation overlay shown on the video when a saved comment is clicked */
   activeAnnotation: Annotation[] | null;
+  /** ID of the comment whose annotation is currently displayed */
+  activeCommentId: number | null;
 }
 
 interface VideoPlayerActions {
@@ -57,8 +59,11 @@ interface VideoPlayerActions {
   cancelAnnotation: () => void;
   /** Save annotations and exit mode */
   finishAnnotation: (annotations: Annotation[]) => void;
-  /** Show saved annotation overlay on the video */
-  showAnnotation: (annotations: Annotation[] | null) => void;
+  /** Show saved annotation overlay and mark the source comment */
+  showAnnotation: (
+    annotations: Annotation[] | null,
+    commentId?: number,
+  ) => void;
   /** Seek to a timestamp and mark it as annotation-triggered */
   seekToAnnotation: (time: number) => void;
   /** Check and clear the annotation seek flag */
@@ -90,6 +95,7 @@ export function VideoPlayerProvider({ children }: { children: ReactNode }) {
   const [activeAnnotation, setActiveAnnotation] = useState<Annotation[] | null>(
     null,
   );
+  const [activeCommentId, setActiveCommentId] = useState<number | null>(null);
 
   // Called by VideoPlayer on mount to connect the real element
   const registerVideoRef = useCallback((el: HTMLVideoElement | null) => {
@@ -169,9 +175,13 @@ export function VideoPlayerProvider({ children }: { children: ReactNode }) {
     setIsAnnotationMode(false);
   }, []);
 
-  const showAnnotation = useCallback((annotations: Annotation[] | null) => {
-    setActiveAnnotation(annotations);
-  }, []);
+  const showAnnotation = useCallback(
+    (annotations: Annotation[] | null, commentId?: number) => {
+      setActiveAnnotation(annotations);
+      setActiveCommentId(annotations ? (commentId ?? null) : null);
+    },
+    [],
+  );
 
   const state: VideoPlayerState = {
     currentTime,
@@ -183,6 +193,7 @@ export function VideoPlayerProvider({ children }: { children: ReactNode }) {
     isAnnotationMode,
     annotationResult,
     activeAnnotation,
+    activeCommentId,
   };
 
   const actions: VideoPlayerActions = {

@@ -5,13 +5,18 @@ import type { Comment } from "@/types";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
 import { Clock, CornerDownRight, Paintbrush } from "lucide-react";
-import { useVideoPlayerActions } from "@/components/video/VideoPlayerProvider";
+import {
+  useVideoPlayerActions,
+  useVideoPlayerState,
+} from "@/components/video/VideoPlayerProvider";
 
 export interface CommentItemProps {
   comment: Comment;
   onSeek?: (timestamp: number) => void;
   onClickThread?: () => void;
   className?: string;
+  /** Highlight the card when its annotation is being viewed */
+  isActive?: boolean;
 }
 
 export function CommentItem({
@@ -19,16 +24,18 @@ export function CommentItem({
   onSeek,
   onClickThread,
   className,
+  isActive: isActiveProp,
 }: CommentItemProps) {
   const { showAnnotation, seekToAnnotation } = useVideoPlayerActions();
+  const { activeCommentId } = useVideoPlayerState();
   const isResolved = comment.isResolved !== null;
+  const isActive = isActiveProp || activeCommentId === comment.id;
 
   const handleClick = useCallback(() => {
     const anns = (comment as any).annotations;
     if (anns && Array.isArray(anns) && anns.length > 0) {
-      // Annotation seek — flagged so the overlay won't be cleared
       seekToAnnotation(comment.timestamp);
-      showAnnotation(anns);
+      showAnnotation(anns, comment.id);
     } else {
       onSeek?.(comment.timestamp);
       showAnnotation(null);
@@ -40,6 +47,7 @@ export function CommentItem({
       className={cn(
         "group rounded-lg border p-3 transition-colors",
         isResolved ? "border-border bg-muted/50" : "border-border bg-card",
+        isActive && "border-primary/50 bg-primary/5 ring-1 ring-primary/20",
         onSeek && "cursor-pointer hover:border-primary/30",
         className,
       )}
