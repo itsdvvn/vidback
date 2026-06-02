@@ -455,7 +455,6 @@ function ReviewVideoSection({
     <div className="mx-auto max-w-5xl px-4 py-4 space-y-4">
       <VideoPlayer
         src={project?.videoUrl || "https://www.w3schools.com/html/mov_bbb.mp4"}
-        showCommentButton
         comments={comments}
       />
       <CommentInput
