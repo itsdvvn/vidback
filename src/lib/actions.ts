@@ -1,7 +1,14 @@
 "use server";
 
 import { db } from "@/db";
-import { projects, comments, user, projectVersions } from "@/db/schema";
+import {
+  projects,
+  comments,
+  user,
+  projectVersions,
+  folders,
+  folderShares,
+} from "@/db/schema";
 import { eq, and, isNull, count, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -20,6 +27,141 @@ async function requireAuth() {
     throw new Error("Not authenticated");
   }
   return session;
+}
+
+// ─── Folders ───
+
+const createFolderSchema = z.object({
+  name: z.string().min(1, "Folder name is required"),
+  color: z.string().nullish(),
+});
+
+export async function createFolder(formData: FormData) {
+  const session = await requireAuth();
+
+  const parsed = createFolderSchema.parse({
+    name: formData.get("name"),
+    color: formData.get("color"),
+  });
+
+  const [folder] = await db
+    .insert(folders)
+    .values({
+      name: parsed.name,
+      ownerId: session.user.id,
+      color: parsed.color ?? null,
+    })
+    .returning();
+
+  revalidatePath("/dashboard");
+  return folder;
+}
+
+export async function getUserFolders() {
+  const session = await requireAuth();
+
+  const rows = await db
+    .select({
+      id: folders.id,
+      name: folders.name,
+      ownerId: folders.ownerId,
+      color: folders.color,
+      createdAt: folders.createdAt,
+      updatedAt: folders.updatedAt,
+      projectCount: count(projects.id),
+    })
+    .from(folders)
+    .leftJoin(projects, eq(projects.folderId, folders.id))
+    .where(eq(folders.ownerId, session.user.id))
+    .groupBy(folders.id)
+    .orderBy(folders.createdAt);
+
+  return rows;
+}
+
+export async function getFolderProjects(folderId: string) {
+  const session = await requireAuth();
+
+  const [folder] = await db
+    .select()
+    .from(folders)
+    .where(eq(folders.id, folderId))
+    .limit(1);
+
+  if (!folder) throw new Error("Folder not found");
+  if (folder.ownerId !== session.user.id) throw new Error("Forbidden");
+
+  const rows = await db
+    .select()
+    .from(projects)
+    .where(eq(projects.folderId, folderId))
+    .orderBy(projects.createdAt);
+
+  return rows;
+}
+
+export async function renameFolder(
+  folderId: string,
+  name: string,
+  color?: string,
+) {
+  const session = await requireAuth();
+
+  const [folder] = await db
+    .select({ ownerId: folders.ownerId })
+    .from(folders)
+    .where(eq(folders.id, folderId))
+    .limit(1);
+
+  if (!folder) throw new Error("Folder not found");
+  if (folder.ownerId !== session.user.id) throw new Error("Forbidden");
+
+  await db
+    .update(folders)
+    .set({ name, color: color ?? null, updatedAt: new Date() })
+    .where(eq(folders.id, folderId));
+
+  revalidatePath("/dashboard");
+  revalidatePath(`/folders/${folderId}`);
+}
+
+export async function deleteFolder(folderId: string) {
+  const session = await requireAuth();
+
+  const [folder] = await db
+    .select({ ownerId: folders.ownerId })
+    .from(folders)
+    .where(eq(folders.id, folderId))
+    .limit(1);
+
+  if (!folder) throw new Error("Folder not found");
+  if (folder.ownerId !== session.user.id) throw new Error("Forbidden");
+
+  await db.delete(folders).where(eq(folders.id, folderId));
+  revalidatePath("/dashboard");
+}
+
+export async function moveProjectToFolder(
+  projectId: string,
+  folderId: string | null,
+) {
+  const session = await requireAuth();
+
+  const [project] = await db
+    .select({ editorId: projects.editorId })
+    .from(projects)
+    .where(eq(projects.id, projectId))
+    .limit(1);
+
+  if (!project) throw new Error("Project not found");
+  if (project.editorId !== session.user.id) throw new Error("Forbidden");
+
+  await db
+    .update(projects)
+    .set({ folderId, updatedAt: new Date() })
+    .where(eq(projects.id, projectId));
+
+  revalidatePath("/dashboard");
 }
 
 // ─── Projects ───
