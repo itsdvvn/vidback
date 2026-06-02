@@ -491,30 +491,41 @@ function ProjectVideoSection({
   }, [project?.videoUrl, project?.thumbnailUrl, project?.id]);
 
   return (
-    <div className="space-y-6">
-      <VideoPlayer
-        src={project?.videoUrl || "https://www.w3schools.com/html/mov_bbb.mp4"}
-        showCommentButton={false}
-        comments={comments}
-      />
-      <div className="rounded-xl border border-border bg-card">
-        <div className="flex items-center justify-between border-b border-border px-4 py-3">
-          <h2 className="font-semibold text-sm text-foreground">
-            Client Feedback ({comments.length})
-          </h2>
-          <span className="text-xs text-muted-foreground/70">
-            Synced — all changes appear for the client
-          </span>
+    <div>
+      <div className="flex flex-col lg:flex-row gap-4">
+        {/* Video (left) */}
+        <div className="lg:flex-[3] min-w-0">
+          <VideoPlayer
+            src={
+              project?.videoUrl || "https://www.w3schools.com/html/mov_bbb.mp4"
+            }
+            showCommentButton={false}
+            comments={comments}
+          />
         </div>
-        <CommentList
-          comments={comments}
-          status={commentStatus as "loading" | "empty" | "error" | "success"}
-          onResolve={onResolve}
-          onReply={onReply}
-          onSeek={handleSeekToComment}
-          isEditor
-          editorName={editorName}
-        />
+
+        {/* Comments (right, scrollable) */}
+        <div className="lg:flex-[2] lg:max-h-[calc(100vh-10rem)] lg:overflow-y-auto lg:sticky lg:top-28">
+          <div className="rounded-xl border border-border bg-card">
+            <div className="flex items-center justify-between border-b border-border px-4 py-3">
+              <h2 className="font-semibold text-sm text-foreground">
+                Client Feedback ({comments.length})
+              </h2>
+              <span className="text-xs text-muted-foreground/70">Synced</span>
+            </div>
+            <CommentList
+              comments={comments}
+              status={
+                commentStatus as "loading" | "empty" | "error" | "success"
+              }
+              onResolve={onResolve}
+              onReply={onReply}
+              onSeek={handleSeekToComment}
+              isEditor
+              editorName={editorName}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

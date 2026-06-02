@@ -452,30 +452,40 @@ function ReviewVideoSection({
   );
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-4 space-y-4">
-      <VideoPlayer
-        src={project?.videoUrl || "https://www.w3schools.com/html/mov_bbb.mp4"}
-        comments={comments}
-      />
-      <CommentInput
-        onSubmit={onAddComment}
-        defaultName={clientName || undefined}
-        forceVisible
-      />
-
-      <div className="rounded-xl border border-border bg-card">
-        <div className="flex items-center justify-between border-b border-border px-4 py-3">
-          <h2 className="font-semibold text-sm">
-            Comments ({comments.length})
-          </h2>
+    <div className="mx-auto max-w-7xl px-4 py-4">
+      <div className="flex flex-col md:flex-row gap-4">
+        {/* Video + Comment Input (left) */}
+        <div className="md:flex-[2] min-w-0 space-y-4">
+          <VideoPlayer
+            src={
+              project?.videoUrl || "https://www.w3schools.com/html/mov_bbb.mp4"
+            }
+            comments={comments}
+          />
+          <CommentInput
+            onSubmit={onAddComment}
+            defaultName={clientName || undefined}
+            forceVisible
+          />
         </div>
-        <CommentList
-          comments={comments}
-          status={status}
-          onSeek={handleSeekToComment}
-          onReply={onReply}
-          editorName={clientName || undefined}
-        />
+
+        {/* Comments (right, scrollable) */}
+        <div className="md:flex-1 md:max-h-[calc(100vh-8rem)] md:overflow-y-auto md:sticky md:top-24">
+          <div className="rounded-xl border border-border bg-card">
+            <div className="flex items-center justify-between border-b border-border px-4 py-3">
+              <h2 className="font-semibold text-sm">
+                Comments ({comments.length})
+              </h2>
+            </div>
+            <CommentList
+              comments={comments}
+              status={status}
+              onSeek={handleSeekToComment}
+              onReply={onReply}
+              editorName={clientName || undefined}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );
