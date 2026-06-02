@@ -32,9 +32,11 @@ export function VideoPlayer({
 }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const videoBoxRef = useRef<HTMLDivElement>(null);
-  const [overlaySize, setOverlaySize] = useState<{
-    w: number;
-    h: number;
+  const [overlayRect, setOverlayRect] = useState<{
+    left: number;
+    top: number;
+    width: number;
+    height: number;
   } | null>(null);
   const {
     isCommenting,
@@ -211,22 +213,55 @@ export function VideoPlayer({
     };
   }, []);
 
-  // Measure container size for annotation overlays (drawing + saved display)
-  // Always active so overlaySize is available when clicking saved comments.
+  // Compute video content rect (letterbox-corrected) for annotation overlays.
+  // This keeps annotations fixed on the media regardless of CSS box aspect ratio.
+  const recalcOverlayRect = useCallback(() => {
+    const video = videoRef.current;
+    const box = videoBoxRef.current;
+    if (!video || !box) return null;
+
+    const cw = box.clientWidth;
+    const ch = box.clientHeight;
+    const vw = video.videoWidth;
+    const vh = video.videoHeight;
+
+    if (!cw || !ch) return null;
+
+    // When video dimensions are known, clamp to the visible frame
+    if (vw && vh) {
+      const containerAspect = cw / ch;
+      const videoAspect = vw / vh;
+
+      let renderW: number, renderH: number, offsetX: number, offsetY: number;
+
+      if (videoAspect > containerAspect) {
+        renderW = cw;
+        renderH = cw / videoAspect;
+        offsetX = 0;
+        offsetY = (ch - renderH) / 2;
+      } else {
+        renderH = ch;
+        renderW = ch * videoAspect;
+        offsetX = (cw - renderW) / 2;
+        offsetY = 0;
+      }
+
+      return { left: offsetX, top: offsetY, width: renderW, height: renderH };
+    }
+
+    // Fallback: full container (video metadata not loaded yet)
+    return { left: 0, top: 0, width: cw, height: ch };
+  }, []);
+
+  // Watch container size and update overlay rect
   useEffect(() => {
-    const update = () => {
-      const box = videoBoxRef.current;
-      if (!box) return;
-      const w = box.clientWidth;
-      const h = box.clientHeight;
-      if (w > 0 && h > 0) setOverlaySize({ w, h });
-    };
+    const update = () => setOverlayRect(recalcOverlayRect());
     update();
     const ro = new ResizeObserver(update);
     const box = videoBoxRef.current;
     if (box) ro.observe(box);
     return () => ro.disconnect();
-  }, []);
+  }, [recalcOverlayRect]);
 
   return (
     <div className={cn("group relative w-full", className)}>
@@ -296,25 +331,29 @@ export function VideoPlayer({
         />
 
         {/* Annotation canvas overlay */}
-        {isAnnotationMode && overlaySize && (
+        {isAnnotationMode && overlayRect && (
           <AnnotationCanvasV2
-            width={overlaySize.w}
-            height={overlaySize.h}
+            width={overlayRect.width}
+            height={overlayRect.height}
             onCancel={() => cancelAnnotation()}
-            className="absolute inset-0 z-10"
-            style={{ position: "absolute", left: 0, top: 0 }}
+            className="absolute z-10"
+            style={{
+              position: "absolute",
+              left: overlayRect.left,
+              top: overlayRect.top,
+            }}
           />
         )}
 
         {/* Read-only annotation overlay for saved comments */}
-        {activeAnnotation && activeAnnotation.length > 0 && overlaySize && (
+        {activeAnnotation && activeAnnotation.length > 0 && overlayRect && (
           <Stage
-            width={overlaySize.w}
-            height={overlaySize.h}
+            width={overlayRect.width}
+            height={overlayRect.height}
             style={{
               position: "absolute",
-              left: 0,
-              top: 0,
+              left: overlayRect.left,
+              top: overlayRect.top,
               pointerEvents: "none",
             }}
           >
@@ -323,8 +362,8 @@ export function VideoPlayer({
                 <AnnotationShape
                   key={i}
                   annotation={ann}
-                  displayWidth={overlaySize.w}
-                  displayHeight={overlaySize.h}
+                  displayWidth={overlayRect.width}
+                  displayHeight={overlayRect.height}
                 />
               ))}
             </Layer>
