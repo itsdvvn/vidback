@@ -5,8 +5,28 @@ export interface Project {
   videoUrl: string;
   shareToken: string;
   editorId: string;
+  folderId?: string | null;
   status?: string | null;
   thumbnailUrl?: string | null;
+  createdAt: Date;
+}
+
+export interface Folder {
+  id: string;
+  name: string;
+  ownerId: string;
+  color?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  /** Populated at query time */
+  projectCount?: number;
+}
+
+export interface FolderShare {
+  id: string;
+  folderId: string;
+  userId: string;
+  permission: "view" | "edit";
   createdAt: Date;
 }
 

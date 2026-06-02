@@ -63,6 +63,31 @@ export const verification = pgTable("verification", {
   updatedAt: timestamp("updated_at"),
 });
 
+// ─── Folders ───
+
+export const folders = pgTable("folders", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+  ownerId: text("owner_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  color: text("color"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const folderShares = pgTable("folder_shares", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  folderId: uuid("folder_id")
+    .notNull()
+    .references(() => folders.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  permission: text("permission").notNull().default("view"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // ─── VidBack application tables ───
 
 export const projects = pgTable("projects", {
@@ -73,6 +98,9 @@ export const projects = pgTable("projects", {
   editorId: text("editor_id")
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
+  folderId: uuid("folder_id").references(() => folders.id, {
+    onDelete: "set null",
+  }),
   status: text("status").notNull().default("Under Review"),
   password: text("password"),
   thumbnailUrl: text("thumbnail_url"),
