@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  useState,
-  useCallback,
-  useRef,
-  useEffect,
-  type CSSProperties,
-} from "react";
+import { useState, useCallback, useRef, type CSSProperties } from "react";
 import { Stage, Layer, Line, Rect, Ellipse, Arrow } from "react-konva";
 import type { Annotation } from "@/components/video/VideoPlayerProvider";
 import { cn } from "@/lib/utils";
@@ -142,6 +136,17 @@ export function AnnotationCanvasV2({
 
   const undo = () => setAnnotations((prev) => prev.slice(0, -1));
   const clearAll = () => setAnnotations([]);
+  const hasStrokes = annotations.length > 0;
+
+  const handleCancel = useCallback(() => {
+    if (hasStrokes) {
+      if (window.confirm("Discard your annotations? They won't be saved.")) {
+        onCancel();
+      }
+    } else {
+      onCancel();
+    }
+  }, [hasStrokes, onCancel]);
 
   return (
     <div className={cn("relative", className)} style={style}>
@@ -246,11 +251,16 @@ export function AnnotationCanvasV2({
       </Stage>
 
       {/* Bottom actions */}
-      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2">
+      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3">
+        {hasStrokes && (
+          <span className="text-[10px] font-medium text-white/60 bg-black/50 rounded-md px-2 py-1">
+            {annotations.length} stroke{annotations.length !== 1 ? "s" : ""}
+          </span>
+        )}
         <button
           onMouseDown={(e) => {
             e.stopPropagation();
-            onCancel();
+            handleCancel();
           }}
           className="rounded-lg bg-black/60 px-3 py-1.5 text-xs text-white hover:bg-black/80 transition-colors"
         >
@@ -261,7 +271,7 @@ export function AnnotationCanvasV2({
             e.stopPropagation();
             onSave(annotations);
           }}
-          className="rounded-lg bg-primary px-3 py-1.5 text-xs text-white hover:bg-primary/90 transition-colors"
+          className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90 transition-colors shadow-lg shadow-primary/40"
         >
           Save & Comment
         </button>
