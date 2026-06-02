@@ -1,7 +1,9 @@
 # ─── Build stage ───
 FROM node:20-alpine AS builder
 ARG NEXT_PUBLIC_BETTER_AUTH_URL
+ARG BETTER_AUTH_SECRET
 ENV NEXT_PUBLIC_BETTER_AUTH_URL=${NEXT_PUBLIC_BETTER_AUTH_URL}
+ENV BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci --only=production && cp -r node_modules /prod_node_modules

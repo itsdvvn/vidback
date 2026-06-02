@@ -33,8 +33,23 @@ function getR2() {
   return _r2;
 }
 
-/** Get or initialise the R2 S3 client */
-export const r2 = getR2();
+/**
+ * Lazy R2 S3 client proxy.
+ * Defers initialization until the first actual method call,
+ * so importing this module never throws at build time.
+ */
+function createLazyR2(): S3Client {
+  const handler: ProxyHandler<S3Client> = {
+    get(_target, prop: string | symbol) {
+      const client = getR2();
+      const value = (client as any)[prop];
+      return typeof value === "function" ? value.bind(client) : value;
+    },
+  };
+  return new Proxy({} as S3Client, handler);
+}
+
+export const r2 = createLazyR2();
 
 export const R2_BUCKET = process.env.R2_BUCKET || "vidback";
 
