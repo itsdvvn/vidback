@@ -41,9 +41,20 @@ export function CommentInput({
   forceVisible = false,
   defaultName,
 }: CommentInputProps) {
-  const { frozenTimestamp, isCommenting, currentTime, annotationResult } =
-    useVideoPlayerState();
-  const { cancelComment, startAnnotation } = useVideoPlayerActions();
+  const {
+    frozenTimestamp,
+    isCommenting,
+    currentTime,
+    annotationResult,
+    isAnnotationMode,
+  } = useVideoPlayerState();
+  const {
+    cancelComment,
+    startAnnotation,
+    getLiveAnnotationStrokes,
+    finishAnnotation,
+    cancelAnnotation,
+  } = useVideoPlayerActions();
 
   const [authorName, setAuthorName] = useState(defaultName || "");
   const [content, setContent] = useState("");
@@ -97,6 +108,16 @@ export function CommentInput({
       setContentError("");
     }
     if (!valid) return;
+
+    // Auto-save annotation strokes before submitting
+    if (isAnnotationMode) {
+      const liveStrokes = getLiveAnnotationStrokes();
+      if (liveStrokes.length > 0) {
+        finishAnnotation(liveStrokes);
+      } else {
+        cancelAnnotation();
+      }
+    }
 
     setSubmitting(true);
     try {
@@ -226,7 +247,10 @@ export function CommentInput({
                 type="button"
                 variant="ghost"
                 size="sm"
-                onClick={cancelComment}
+                onClick={() => {
+                  if (isAnnotationMode) cancelAnnotation();
+                  cancelComment();
+                }}
               >
                 Cancel
               </Button>

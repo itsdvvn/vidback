@@ -1,8 +1,15 @@
 "use client";
 
-import { useState, useCallback, useRef, type CSSProperties } from "react";
+import {
+  useState,
+  useCallback,
+  useRef,
+  useEffect,
+  type CSSProperties,
+} from "react";
 import { Stage, Layer, Line, Rect, Ellipse, Arrow } from "react-konva";
 import type { Annotation } from "@/components/video/VideoPlayerProvider";
+import { useVideoPlayerActions } from "@/components/video/VideoPlayerProvider";
 import { cn } from "@/lib/utils";
 import {
   X,
@@ -24,15 +31,15 @@ interface AnnotationCanvasV2Props {
 }
 
 const COLORS = [
+  "#eab308",
   "#ff0000",
   "#ffa500",
-  "#ffff00",
   "#00ff00",
   "#00bfff",
   "#ff00ff",
   "#ffffff",
 ];
-const DEFAULT_COLOR = "#ff0000";
+const DEFAULT_COLOR = "#eab308";
 
 type ToolType = Annotation["type"];
 
@@ -44,6 +51,7 @@ export function AnnotationCanvasV2({
   className,
   style,
 }: AnnotationCanvasV2Props) {
+  const { syncAnnotationStrokes } = useVideoPlayerActions();
   const [tool, setTool] = useState<ToolType>("freehand");
   const [color, setColor] = useState(DEFAULT_COLOR);
   const strokeWidth = 3;
@@ -133,6 +141,11 @@ export function AnnotationCanvasV2({
     }
     setCurrentPoints([]);
   }, [tool, color]);
+
+  // Sync strokes to provider for auto-save on form submit
+  useEffect(() => {
+    syncAnnotationStrokes(annotations);
+  }, [annotations, syncAnnotationStrokes]);
 
   const undo = () => setAnnotations((prev) => prev.slice(0, -1));
   const clearAll = () => setAnnotations([]);

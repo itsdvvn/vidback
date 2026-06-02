@@ -60,6 +60,10 @@ interface VideoPlayerActions {
   seekToAnnotation: (time: number) => void;
   /** Check and clear the annotation seek flag */
   consumeAnnotationSeek: () => boolean;
+  /** Sync live strokes from AnnotationCanvasV2 (auto-save on submit) */
+  syncAnnotationStrokes: (strokes: Annotation[]) => void;
+  /** Read and return current live strokes */
+  getLiveAnnotationStrokes: () => Annotation[];
 }
 
 const StateContext = createContext<VideoPlayerState | null>(null);
@@ -69,6 +73,7 @@ export function VideoPlayerProvider({ children }: { children: ReactNode }) {
   // Store the actual video element in a ref
   const videoElRef = useRef<HTMLVideoElement | null>(null);
   const annotationSeekRef = useRef(false);
+  const liveAnnotationStrokesRef = useRef<Annotation[]>([]);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -200,12 +205,18 @@ export function VideoPlayerProvider({ children }: { children: ReactNode }) {
       annotationSeekRef.current = true;
       seek(time);
     },
-    /** Check and clear the annotation seek flag (used by VideoPlayer) */
+    /** Check and clear the annotation seek flag */
     consumeAnnotationSeek: () => {
       const val = annotationSeekRef.current;
       annotationSeekRef.current = false;
       return val;
     },
+    /** Sync live strokes from AnnotationCanvasV2 */
+    syncAnnotationStrokes: (strokes: Annotation[]) => {
+      liveAnnotationStrokesRef.current = strokes;
+    },
+    /** Read current live strokes (used by CommentInput on submit) */
+    getLiveAnnotationStrokes: () => liveAnnotationStrokesRef.current,
   };
 
   return (
