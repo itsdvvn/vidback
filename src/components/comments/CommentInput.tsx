@@ -109,14 +109,17 @@ export function CommentInput({
     }
     if (!valid) return;
 
-    // Auto-save annotation strokes before submitting
+    // Capture live annotation strokes directly (state may be stale)
+    const finalAnnotations =
+      annotations.length > 0
+        ? annotations
+        : isAnnotationMode
+          ? getLiveAnnotationStrokes()
+          : [];
+
     if (isAnnotationMode) {
-      const liveStrokes = getLiveAnnotationStrokes();
-      if (liveStrokes.length > 0) {
-        // Set local state directly (not via annotationResult effect)
-        // to avoid race on the synchronous onSubmit call below
-        setAnnotations(liveStrokes);
-        finishAnnotation(liveStrokes);
+      if (finalAnnotations.length > 0) {
+        finishAnnotation(finalAnnotations);
       } else {
         cancelAnnotation();
       }
@@ -138,7 +141,9 @@ export function CommentInput({
         timestamp,
         parentId,
         annotations:
-          annotations.length > 0 ? JSON.stringify(annotations) : undefined,
+          finalAnnotations.length > 0
+            ? JSON.stringify(finalAnnotations)
+            : undefined,
       });
 
       setContent("");
