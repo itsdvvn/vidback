@@ -217,9 +217,10 @@ export function CommentInput({
                 variant="ghost"
                 size="sm"
                 onClick={startAnnotation}
+                title="Draw freehand shapes, rectangles, circles and arrows on the video"
               >
                 <PenLine className="h-4 w-4 mr-1" />
-                Annotate
+                Note Brush
               </Button>
               <Button
                 type="button"

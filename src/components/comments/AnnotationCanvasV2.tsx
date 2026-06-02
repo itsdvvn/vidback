@@ -139,16 +139,20 @@ export function AnnotationCanvasV2({
     <div className={cn("relative", className)} style={style}>
       {/* Toolbar */}
       <div className="absolute top-2 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1 rounded-lg bg-black/80 px-2 py-1.5 shadow-lg">
+        <span className="text-[10px] font-medium text-white/50 mr-1 uppercase tracking-wider">
+          Brush
+        </span>
         {(
           [
-            { type: "freehand" as ToolType, icon: Pen },
-            { type: "rectangle" as ToolType, icon: Square },
-            { type: "circle" as ToolType, icon: Circle },
-            { type: "arrow" as ToolType, icon: ArrowUp },
+            { type: "freehand" as ToolType, icon: Pen, label: "Freehand" },
+            { type: "rectangle" as ToolType, icon: Square, label: "Rectangle" },
+            { type: "circle" as ToolType, icon: Circle, label: "Circle" },
+            { type: "arrow" as ToolType, icon: ArrowUp, label: "Arrow" },
           ] as const
         ).map((t) => (
           <button
             key={t.type}
+            title={t.label}
             onMouseDown={(e) => {
               e.stopPropagation();
               setTool(t.type);
