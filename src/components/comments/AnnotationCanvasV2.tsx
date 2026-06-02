@@ -24,7 +24,6 @@ import {
 interface AnnotationCanvasV2Props {
   width: number;
   height: number;
-  onSave: (annotations: Annotation[]) => void;
   onCancel: () => void;
   className?: string;
   style?: CSSProperties;
@@ -46,7 +45,6 @@ type ToolType = Annotation["type"];
 export function AnnotationCanvasV2({
   width,
   height,
-  onSave,
   onCancel,
   className,
   style,
@@ -57,41 +55,22 @@ export function AnnotationCanvasV2({
   const strokeWidth = 3;
 
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
-  const [isDrawing, setIsDrawing] = useState(false);
-
-  // Current stroke being drawn (freehand points or shape anchor)
   const [currentPoints, setCurrentPoints] = useState<
     { x: number; y: number }[]
   >([]);
   const isDrawingRef = useRef(false);
   const currentPointsRef = useRef<{ x: number; y: number }[]>([]);
-
-  // For rectangle/circle/arrow: track the start point
   const shapeStartRef = useRef<{ x: number; y: number } | null>(null);
 
-  // For freehand: accumulate points via ref (avoids stale closures)
-  const handlePointerDown = useCallback(
-    (e: any) => {
-      // Only handle direct canvas events, not toolbar clicks
-      if (e.target !== e.target.getStage()) return;
-
-      const pos = e.target.getStage()?.getPointerPosition();
-      if (!pos) return;
-
-      isDrawingRef.current = true;
-      shapeStartRef.current = { x: pos.x, y: pos.y };
-
-      if (tool === "freehand") {
-        currentPointsRef.current = [{ x: pos.x, y: pos.y }];
-        setCurrentPoints([{ x: pos.x, y: pos.y }]);
-      } else {
-        // For shapes, just record start
-        currentPointsRef.current = [{ x: pos.x, y: pos.y }];
-        setCurrentPoints([{ x: pos.x, y: pos.y }]);
-      }
-    },
-    [tool],
-  );
+  const handlePointerDown = useCallback((e: any) => {
+    if (e.target !== e.target.getStage()) return;
+    const pos = e.target.getStage()?.getPointerPosition();
+    if (!pos) return;
+    isDrawingRef.current = true;
+    shapeStartRef.current = { x: pos.x, y: pos.y };
+    currentPointsRef.current = [{ x: pos.x, y: pos.y }];
+    setCurrentPoints([{ x: pos.x, y: pos.y }]);
+  }, []);
 
   const handlePointerMove = useCallback(
     (e: any) => {
@@ -106,7 +85,6 @@ export function AnnotationCanvasV2({
         ];
         setCurrentPoints([...currentPointsRef.current]);
       } else {
-        // For shapes: points[0] = start, points[1..] = current pointer
         const start = shapeStartRef.current;
         if (start) {
           currentPointsRef.current = [start, { x: pos.x, y: pos.y }];
@@ -120,15 +98,12 @@ export function AnnotationCanvasV2({
   const handlePointerUp = useCallback(() => {
     if (!isDrawingRef.current) return;
     isDrawingRef.current = false;
-
     const points = currentPointsRef.current;
     currentPointsRef.current = [];
     shapeStartRef.current = null;
 
     if (points.length > 0) {
-      // For shapes (rectangle, circle, arrow), only save if we have 2+ points
       if (tool !== "freehand" && points.length < 2) return;
-
       setAnnotations((prev) => [
         ...prev,
         {
@@ -151,20 +126,30 @@ export function AnnotationCanvasV2({
   const clearAll = () => setAnnotations([]);
   const hasStrokes = annotations.length > 0;
 
-  const handleCancel = useCallback(() => {
-    if (hasStrokes) {
-      if (window.confirm("Discard your annotations? They won't be saved.")) {
-        onCancel();
-      }
-    } else {
-      onCancel();
-    }
-  }, [hasStrokes, onCancel]);
-
   return (
     <div className={cn("relative", className)} style={style}>
+      {/* Hint bar */}
+      <div className="absolute top-1 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 rounded-full bg-black/70 px-3 py-1 shadow-lg pointer-events-none">
+        <Paintbrush className="h-3 w-3 text-yellow-400" />
+        <span className="text-[10px] font-medium text-white/80">
+          Notebrush active — submit or cancel in the comment form
+        </span>
+      </div>
+
+      {/* Close button */}
+      <button
+        onMouseDown={(e) => {
+          e.stopPropagation();
+          onCancel();
+        }}
+        className="absolute top-1 right-1 z-30 rounded-full bg-black/60 p-1 text-white/70 hover:text-white hover:bg-black/80 transition-colors"
+        title="Close notebrush"
+      >
+        <X className="h-3.5 w-3.5" />
+      </button>
+
       {/* Toolbar */}
-      <div className="absolute top-2 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1 rounded-lg bg-black/80 px-2 py-1.5 shadow-lg">
+      <div className="absolute top-8 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1 rounded-lg bg-black/80 px-2 py-1.5 shadow-lg">
         <span className="text-[10px] font-medium text-white/50 mr-1 uppercase tracking-wider">
           Brush
         </span>
@@ -218,7 +203,7 @@ export function AnnotationCanvasV2({
             e.stopPropagation();
             undo();
           }}
-          disabled={annotations.length === 0}
+          disabled={!hasStrokes}
           className="rounded p-1.5 text-white/60 hover:text-white hover:bg-white/10 disabled:opacity-30"
         >
           <Undo2 className="h-4 w-4" />
@@ -228,7 +213,7 @@ export function AnnotationCanvasV2({
             e.stopPropagation();
             clearAll();
           }}
-          disabled={annotations.length === 0}
+          disabled={!hasStrokes}
           className="rounded p-1.5 text-white/60 hover:text-white hover:bg-white/10 disabled:opacity-30"
         >
           <Trash2 className="h-4 w-4" />
@@ -245,11 +230,9 @@ export function AnnotationCanvasV2({
         style={{ touchAction: "none", cursor: "crosshair" }}
       >
         <Layer>
-          {/* Saved annotations */}
           {annotations.map((ann, i) => (
             <AnnotationShape key={i} annotation={ann} />
           ))}
-          {/* In-progress stroke */}
           {currentPoints.length > 0 && (
             <AnnotationShape
               annotation={{
@@ -262,33 +245,6 @@ export function AnnotationCanvasV2({
           )}
         </Layer>
       </Stage>
-
-      {/* Bottom actions */}
-      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3">
-        {hasStrokes && (
-          <span className="text-[10px] font-medium text-white/60 bg-black/50 rounded-md px-2 py-1">
-            {annotations.length} stroke{annotations.length !== 1 ? "s" : ""}
-          </span>
-        )}
-        <button
-          onMouseDown={(e) => {
-            e.stopPropagation();
-            handleCancel();
-          }}
-          className="rounded-lg bg-black/60 px-3 py-1.5 text-xs text-white hover:bg-black/80 transition-colors"
-        >
-          <X className="h-3.5 w-3.5 inline mr-1" /> Cancel
-        </button>
-        <button
-          onMouseDown={(e) => {
-            e.stopPropagation();
-            onSave(annotations);
-          }}
-          className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90 transition-colors shadow-lg shadow-primary/40"
-        >
-          Save & Comment
-        </button>
-      </div>
     </div>
   );
 }
@@ -296,7 +252,6 @@ export function AnnotationCanvasV2({
 /** Renders a single annotation as the appropriate Konva shape. */
 export function AnnotationShape({ annotation }: { annotation: Annotation }) {
   const { type, points, color, strokeWidth } = annotation;
-
   if (points.length === 0) return null;
 
   if (type === "freehand") {
@@ -358,21 +313,20 @@ export function AnnotationShape({ annotation }: { annotation: Annotation }) {
       dy = y2 - y1;
     const angle = Math.atan2(dy, dx);
     const headLen = Math.min(15, Math.sqrt(dx * dx + dy * dy) * 0.3);
-    const arrowPoints = [
-      x1,
-      y1,
-      x2,
-      y2,
-      x2 - headLen * Math.cos(angle - Math.PI / 6),
-      y2 - headLen * Math.sin(angle - Math.PI / 6),
-      x2,
-      y2,
-      x2 - headLen * Math.cos(angle + Math.PI / 6),
-      y2 - headLen * Math.sin(angle + Math.PI / 6),
-    ];
     return (
       <Line
-        points={arrowPoints}
+        points={[
+          x1,
+          y1,
+          x2,
+          y2,
+          x2 - headLen * Math.cos(angle - Math.PI / 6),
+          y2 - headLen * Math.sin(angle - Math.PI / 6),
+          x2,
+          y2,
+          x2 - headLen * Math.cos(angle + Math.PI / 6),
+          y2 - headLen * Math.sin(angle + Math.PI / 6),
+        ]}
         stroke={color}
         strokeWidth={strokeWidth}
         lineCap="round"

@@ -15,7 +15,6 @@ import { Stage, Layer } from "react-konva";
 import { cn } from "@/lib/utils";
 import { AlertTriangle, Loader } from "lucide-react";
 import type { Comment } from "@/types";
-import type { Annotation } from "./VideoPlayerProvider";
 
 export interface VideoPlayerProps {
   src: string;
@@ -301,7 +300,6 @@ export function VideoPlayer({
           <AnnotationCanvasV2
             width={overlaySize.w}
             height={overlaySize.h}
-            onSave={(anns: Annotation[]) => finishAnnotation(anns)}
             onCancel={() => cancelAnnotation()}
             className="absolute inset-0 z-10"
             style={{ position: "absolute", left: 0, top: 0 }}
