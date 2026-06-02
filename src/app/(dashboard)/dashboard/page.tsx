@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import type { Project } from "@/types";
+import { useState, useEffect, useCallback } from "react";
+import type { Project, Folder as FolderType } from "@/types";
 import { ProjectCard } from "@/components/dashboard/ProjectCard";
 import { EmptyState } from "@/components/dashboard/EmptyState";
 import { Button } from "@/components/ui/Button";
@@ -10,6 +10,8 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import {
   Film,
   Plus,
+  Folder as FolderIcon,
+  FolderPlus,
   AlertCircle,
   RefreshCw,
   LayoutGrid,
@@ -19,7 +21,12 @@ import {
   Calendar,
 } from "lucide-react";
 import Link from "next/link";
-import { getEditorProjects, updateProjectStatus } from "@/lib/actions";
+import {
+  getEditorProjects,
+  updateProjectStatus,
+  getUserFolders,
+  createFolder,
+} from "@/lib/actions";
 import { cn } from "@/lib/utils";
 
 type ProjectWithCounts = Project & {
@@ -50,6 +57,9 @@ const statusVariantMap: Record<string, BadgeVariant> = {
 
 export default function DashboardPage() {
   const [projects, setProjects] = useState<ProjectWithCounts[]>([]);
+  const [folders, setFolders] = useState<
+    (FolderType & { projectCount: number })[]
+  >([]);
   const [status, setStatus] = useState<
     "loading" | "empty" | "error" | "success"
   >("loading");
@@ -69,26 +79,53 @@ export default function DashboardPage() {
     localStorage.setItem("dashboardViewMode", viewMode);
   }, [viewMode]);
 
-  const fetchProjects = async () => {
+  const fetchData = useCallback(async () => {
     setStatus("loading");
     setError("");
     try {
-      const data = await getEditorProjects();
-      if (data.length === 0) {
-        setStatus("empty");
-      } else {
-        setProjects(data as ProjectWithCounts[]);
-        setStatus("success");
-      }
+      const [projectData, folderData] = await Promise.all([
+        getEditorProjects(),
+        getUserFolders(),
+      ]);
+      setProjects(projectData as ProjectWithCounts[]);
+      setFolders(folderData as (FolderType & { projectCount: number })[]);
+      setStatus(
+        projectData.length === 0 && folderData.length === 0
+          ? "empty"
+          : "success",
+      );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load projects");
+      setError(err instanceof Error ? err.message : "Failed to load data");
       setStatus("error");
+    }
+  }, []);
+
+  const [showCreateFolder, setShowCreateFolder] = useState(false);
+  const [folderName, setFolderName] = useState("");
+  const [folderColor, setFolderColor] = useState("#eab308");
+  const [creatingFolder, setCreatingFolder] = useState(false);
+
+  const handleCreateFolder = async () => {
+    if (!folderName.trim()) return;
+    setCreatingFolder(true);
+    try {
+      const fd = new FormData();
+      fd.set("name", folderName.trim());
+      fd.set("color", folderColor);
+      await createFolder(fd);
+      setShowCreateFolder(false);
+      setFolderName("");
+      await fetchData();
+    } catch {
+      /* ignore */
+    } finally {
+      setCreatingFolder(false);
     }
   };
 
   useEffect(() => {
-    fetchProjects();
-  }, []);
+    fetchData();
+  }, [fetchData]);
 
   // ─── Loading ───
   if (status === "loading") {
@@ -126,7 +163,7 @@ export default function DashboardPage() {
             "Could not connect to the database. Make sure PostgreSQL is running."
           }
           action={
-            <Button onClick={fetchProjects}>
+            <Button onClick={fetchData}>
               <RefreshCw className="h-4 w-4" />
               Retry
             </Button>
@@ -156,6 +193,8 @@ export default function DashboardPage() {
       </div>
     );
   }
+
+  const unfiledProjects = projects.filter((p) => !p.folderId);
 
   // ─── View Toggle Options ───
   const viewOptions: {
@@ -188,8 +227,10 @@ export default function DashboardPage() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Projects</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {projects.length} {projects.length === 1 ? "project" : "projects"} —{" "}
-            {totalOpen} open comments
+            {projects.length} {projects.length === 1 ? "project" : "projects"}
+            {folders.length > 0 &&
+              ` — ${folders.length} ${folders.length === 1 ? "folder" : "folders"}`}
+            {totalOpen > 0 && ` — ${totalOpen} open`}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -212,6 +253,14 @@ export default function DashboardPage() {
               </button>
             ))}
           </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowCreateFolder(true)}
+          >
+            <FolderPlus className="h-4 w-4 mr-1" />
+            New Folder
+          </Button>
           <Link href="/projects/new">
             <Button>
               <Plus className="h-4 w-4" />
@@ -221,10 +270,44 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* ─── Folders Grid ─── */}
+      {folders.length > 0 && (
+        <div className="mb-10">
+          <h2 className="mb-4 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+            Folders
+          </h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {folders.map((folder) => (
+              <Link
+                key={folder.id}
+                href={`/folders/${folder.id}`}
+                className="rounded-xl border border-border bg-card p-5 hover:border-primary/30 transition-colors group"
+              >
+                <div className="flex items-start justify-between">
+                  <div
+                    className="h-10 w-10 rounded-lg flex items-center justify-center"
+                    style={{ backgroundColor: folder.color || "#eab308" }}
+                  >
+                    <FolderIcon className="h-5 w-5 text-white" />
+                  </div>
+                </div>
+                <h3 className="mt-3 font-medium text-foreground group-hover:text-primary transition-colors">
+                  {folder.name}
+                </h3>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {folder.projectCount}{" "}
+                  {folder.projectCount === 1 ? "project" : "projects"}
+                </p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* ─── Grid View ─── */}
       {viewMode === "grid" && (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {projects.map((project) => (
+          {unfiledProjects.map((project) => (
             <ProjectCard
               key={project.id}
               project={project}
@@ -262,7 +345,7 @@ export default function DashboardPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {projects.map((project) => (
+              {unfiledProjects.map((project) => (
                 <tr
                   key={project.id}
                   className="hover:bg-muted/30 transition-colors"
@@ -281,7 +364,7 @@ export default function DashboardPage() {
                       onChange={async (e) => {
                         try {
                           await updateProjectStatus(project.id, e.target.value);
-                          fetchProjects();
+                          fetchData();
                         } catch {
                           /* ignore */
                         }
@@ -342,7 +425,7 @@ export default function DashboardPage() {
 
       {/* ─── Kanban View ─── */}
       {viewMode === "kanban" && (
-        <KanbanBoard projects={projects} fetchProjects={fetchProjects} />
+        <KanbanBoard projects={unfiledProjects} fetchProjects={fetchData} />
       )}
     </div>
   );
