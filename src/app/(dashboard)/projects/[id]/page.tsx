@@ -493,8 +493,8 @@ function ProjectVideoSection({
   return (
     <div>
       <div className="flex flex-col lg:flex-row gap-4">
-        {/* Video (left) */}
-        <div className="lg:flex-[3] min-w-0">
+        {/* Video (left, sticky on desktop) */}
+        <div className="lg:flex-[3] min-w-0 lg:sticky lg:top-28 lg:self-start">
           <VideoPlayer
             src={
               project?.videoUrl || "https://www.w3schools.com/html/mov_bbb.mp4"

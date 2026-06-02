@@ -454,8 +454,8 @@ function ReviewVideoSection({
   return (
     <div className="mx-auto max-w-7xl px-4 py-4">
       <div className="flex flex-col md:flex-row gap-4">
-        {/* Video + Comment Input (left) */}
-        <div className="md:flex-[2] min-w-0 space-y-4">
+        {/* Video + Comment Input (left, sticky on desktop) */}
+        <div className="md:flex-[2] min-w-0 space-y-4 md:sticky md:top-24 md:self-start">
           <VideoPlayer
             src={
               project?.videoUrl || "https://www.w3schools.com/html/mov_bbb.mp4"
