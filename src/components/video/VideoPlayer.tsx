@@ -194,12 +194,9 @@ export function VideoPlayer({
     };
   }, []);
 
-  // Measure container size when annotation mode activates
+  // Measure container size for annotation overlays (drawing + saved display)
+  // Always active so overlaySize is available when clicking saved comments.
   useEffect(() => {
-    if (!isAnnotationMode) {
-      setOverlaySize(null);
-      return;
-    }
     const update = () => {
       const box = videoBoxRef.current;
       if (!box) return;
@@ -212,7 +209,7 @@ export function VideoPlayer({
     const box = videoBoxRef.current;
     if (box) ro.observe(box);
     return () => ro.disconnect();
-  }, [isAnnotationMode]);
+  }, []);
 
   return (
     <div className={cn("group relative w-full", className)}>
