@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ProjectForm,
@@ -13,6 +13,14 @@ import { Button } from "@/components/ui/Button";
 import { createProject } from "@/lib/actions";
 
 export default function NewProjectPage() {
+  return (
+    <Suspense fallback={null}>
+      <NewProjectForm />
+    </Suspense>
+  );
+}
+
+function NewProjectForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const folderId = searchParams.get("folderId");
