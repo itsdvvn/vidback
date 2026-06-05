@@ -279,6 +279,7 @@ const createProjectSchema = z.object({
   name: z.string().min(1, "Project name is required"),
   videoUrl: z.string().url("Must be a valid URL"),
   storageBytes: z.coerce.number().min(0).default(0),
+  folderId: z.string().uuid().nullish(),
 });
 
 export async function createProject(formData: FormData) {
@@ -325,6 +326,7 @@ export async function createProject(formData: FormData) {
     name: formData.get("name"),
     videoUrl: formData.get("videoUrl"),
     storageBytes: formData.get("storageBytes"),
+    folderId: formData.get("folderId"),
   });
 
   const shareToken = `${nanoid(4)}-${nanoid(4)}-${nanoid(4)}`;
@@ -338,6 +340,7 @@ export async function createProject(formData: FormData) {
       shareToken,
       password,
       editorId: session.user.id,
+      folderId: parsed.folderId ?? null,
       storageBytes: parsed.storageBytes,
     })
     .returning();

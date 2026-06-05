@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ProjectForm,
   type ProjectFormData,
@@ -14,6 +14,9 @@ import { createProject } from "@/lib/actions";
 
 export default function NewProjectPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const folderId = searchParams.get("folderId");
+
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string>("");
   const [created, setCreated] = useState<{
@@ -32,6 +35,7 @@ export default function NewProjectPage() {
       formData.set("name", data.name);
       formData.set("videoUrl", data.videoUrl);
       formData.set("storageBytes", String(data.fileSize || 0));
+      if (folderId) formData.set("folderId", folderId);
 
       const result = await createProject(formData);
       setCreated({

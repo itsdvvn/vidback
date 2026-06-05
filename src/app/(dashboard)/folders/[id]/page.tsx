@@ -7,11 +7,7 @@ import type { Project } from "@/types";
 import { ProjectCard } from "@/components/dashboard/ProjectCard";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/Button";
-import {
-  getFolderProjects,
-  renameFolder,
-  deleteFolder,
-} from "@/lib/actions";
+import { getFolderProjects, renameFolder, deleteFolder } from "@/lib/actions";
 import {
   ArrowLeft,
   Film,
@@ -28,9 +24,14 @@ export default function FolderDetailPage() {
   const router = useRouter();
   const folderId = params?.id as string;
 
-  const [folder, setFolder] = useState<{ name: string; color: string | null } | null>(null);
+  const [folder, setFolder] = useState<{
+    name: string;
+    color: string | null;
+  } | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [loadState, setLoadState] = useState<"loading" | "error" | "ready">("loading");
+  const [loadState, setLoadState] = useState<"loading" | "error" | "ready">(
+    "loading",
+  );
   const [error, setError] = useState("");
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState("");
@@ -45,7 +46,10 @@ export default function FolderDetailPage() {
     try {
       const data = await getFolderProjects(folderId);
       if (data.length > 0) {
-        setFolder({ name: (data as any)[0].folderName || "Folder", color: null });
+        setFolder({
+          name: (data as any)[0].folderName || "Folder",
+          color: null,
+        });
       }
       setProjects(data as Project[]);
       setLoadState("ready");
@@ -140,7 +144,11 @@ export default function FolderDetailPage() {
               <Button size="sm" onClick={handleRename} loading={saving}>
                 Save
               </Button>
-              <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setEditing(false)}
+              >
                 Cancel
               </Button>
             </div>
@@ -171,7 +179,9 @@ export default function FolderDetailPage() {
         <div className="flex items-center gap-3">
           {showDelete ? (
             <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Delete this folder and its projects?</span>
+              <span className="text-sm text-muted-foreground">
+                Delete this folder and its projects?
+              </span>
               <Button
                 size="sm"
                 variant="ghost"
@@ -197,7 +207,7 @@ export default function FolderDetailPage() {
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
-              <Link href="/projects/new">
+              <Link href={`/projects/new?folderId=${folderId}`}>
                 <Button size="sm">
                   <Plus className="h-4 w-4" />
                   New Project
